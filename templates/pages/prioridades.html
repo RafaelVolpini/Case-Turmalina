@@ -1,0 +1,57 @@
+<div class="stack">
+    <div>
+        <h1 style="font-size:22px; font-weight:800; color:var(--color-neutral);">Prioridades da Semana</h1>
+        <p class="page-subtitle">Ranking das 14 lojas por índice de prioridade -- combina margem, faturamento vs. meta e avaliações.</p>
+    </div>
+
+    <div class="priority-banner">
+        <div class="priority-banner-title">
+            <span>&#9888;</span>
+            As {{ criticas|length }} lojas para intervir nesta semana
+        </div>
+        <p class="priority-banner-caption">
+            A estrutura atual sustenta ação efetiva em, no máximo, duas lojas por semana -- por isso o
+            ranking recorta as duas com maior índice de prioridade. Elas já vêm selecionadas no
+            comparativo logo abaixo.
+        </p>
+    </div>
+
+    <div class="grid grid-2">
+        {% for loja in criticas %}
+        <a class="priority-card" href="/lojas/{{ loja.id_loja }}"
+           hx-get="/lojas/{{ loja.id_loja }}" hx-target="#main-content" hx-swap="innerHTML"
+           hx-push-url="/lojas/{{ loja.id_loja }}">
+            <div class="priority-card-head">
+                <span class="priority-rank">{{ loop.index }}</span>
+                <span class="priority-store-name">{{ loja.nome_loja }}</span>
+                <span class="badge badge-error" style="margin-left:auto;">Crítico</span>
+            </div>
+            <div class="priority-metrics">
+                <div>
+                    <span class="kpi-label">Margem</span>
+                    <span class="kpi-value" style="font-size:19px;">{{ loja.margem_30d }}%</span>
+                </div>
+                <div>
+                    <span class="kpi-label">Faturamento vs. meta</span>
+                    <span class="kpi-value" style="font-size:19px;">
+                        {% if loja.variacao_faturamento_vs_meta_pct is not none %}
+                            {{ "+" if loja.variacao_faturamento_vs_meta_pct >= 0 else "" }}{{ loja.variacao_faturamento_vs_meta_pct }}%
+                        {% else %}--{% endif %}
+                    </span>
+                </div>
+                <div>
+                    <span class="kpi-label">Avaliação</span>
+                    <span class="kpi-value" style="font-size:19px;">{{ loja.avaliacao_media if loja.avaliacao_media else "--" }}</span>
+                </div>
+            </div>
+            <ul class="priority-motivos">
+                {% for motivo in loja.motivos %}
+                <li>{{ motivo }}</li>
+                {% endfor %}
+            </ul>
+        </a>
+        {% endfor %}
+    </div>
+
+    {% include "components/comparativo_section.html" %}
+</div>

@@ -1,0 +1,34 @@
+<h3 style="font-size:17px; font-weight:800; margin-bottom:10px;">Relatório semanal -- {{ resumo|length }} lojas</h3>
+
+{% if criticas %}
+<div class="alert alert-warning">
+    <span>{{ criticas|length }} loja(s) em risco crítico de margem nos últimos 30 dias.</span>
+</div>
+{% endif %}
+
+<div style="overflow-x:auto;">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Loja</th>
+                <th>Faturamento (30d)</th>
+                <th>Margem (30d)</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loja in resumo %}
+            <tr>
+                <td>{{ loja.nome_loja }}</td>
+                <td>R$ {{ "{:,.0f}".format(loja.faturamento_30d).replace(",", ".") }}</td>
+                <td class="{{ 'text-error' if loja.margem_30d < 0 else '' }}" style="font-weight:600;">{{ loja.margem_30d }}%</td>
+                <td>
+                    {% if loja.risco_critico %}
+                    <span class="badge badge-error">Risco Crítico</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

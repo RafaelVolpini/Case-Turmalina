@@ -1,0 +1,15 @@
+id_loja,nome_loja,cidade_uf,formato,modelo,data_abertura,area_m2,num_funcionarios,meta_faturamento_mensal,status
+LJ01,Turmalina Savassi,Belo Horizonte/MG,rua,PRÓPRIA,2021-08-12,88,11,"R$ 168.000,00",Ativa
+LJ02,Turmalina Pátio Savassi,BH,Shopping,PRÓPRIA,05/11/2021,62 m²,9,"R$ 152.000,00",ativa
+LJ03,Turmalina Lourdes,belo horizonte - mg,Loja de rua,Própria,21.03.2022,"74,0",9,"R$ 118.000,00",ativa
+LJ04,Turmalina BH Shopping,Belo Horizonte/MG,Shopping,PRÓPRIA,2022-07-09,58m2,8,"R$ 165.000,00",ativa
+LJ05,Turmalina Contagem,Contagem/MG,quiosque,franquia,17/10/2022,14,4,"R$ 74.000,00",Ativa
+LJ06,Turmalina Nova Lima,Nova Lima (MG),Rua,Própria,2023-02-14,96 m²,12 (sendo 2 PJ),"R$ 148.000,00",ATIVA
+LJ07,Turmalina Diamond Mall,BH/MG,shopping center,franquia,30/06/2023,"46,0",7,"R$ 122.000,00",ativa
+LJ08,Turmalina Juiz de Fora,Juiz de Fora/MG,Rua,franquia,08.11.2023,70m2,8,"R$ 128.000,00",1
+LJ09,Turmalina Praia do Canto,Vitoria/ES,rua,PRÓPRIA,2024-04-03,82,10,"R$ 118.000,00",ativa
+LJ10,Turmalina Cambuí,Campinas - SP,Rua,propria,15/09/2025,78 m²,10,"R$ 132.000,00",ATIVA
+LJ11,Turmalina Uberlândia,uberlandia/mg,Kiosk,franquia,2025-11-20,"12,0",3,"R$ 62.000,00",1
+LJ12,Turmalina Vila Olímpia,São Paulo/SP,RUA,PRÓPRIA,19/01/2026,84m2,11,"R$ 148.000,00",ativa
+LJ13,Turmalina Shopping Vitória,Vitória/ES,shopping center,franquia,23.02.2026,52,7,"R$ 108.000,00",1
+LJ14,Turmalina Belvedere,Belo Horizonte / MG,rua,propria,2026-03-16,90 m²,12,"R$ 142.000,00",ativa

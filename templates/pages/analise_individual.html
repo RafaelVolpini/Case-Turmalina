@@ -1,0 +1,80 @@
+<div class="stack">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+        <div>
+            <h1 style="font-size:22px; font-weight:800; color:var(--color-neutral);">
+                Análise Individual -- {{ metrics.nome_loja }}
+            </h1>
+            <p class="page-subtitle">
+                {{ metrics.cidade_uf }} · {{ metrics.formato }} · {{ metrics.modelo }} ·
+                {{ metrics.periodo_inicio.strftime('%d/%m/%Y') }} a {{ metrics.periodo_fim.strftime('%d/%m/%Y') }}
+            </p>
+        </div>
+        {% if metrics.risco_critico %}
+        <span class="badge badge-error">Risco Crítico</span>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-3">
+        <div class="card">
+            <span class="kpi-label">Faturamento (30 dias)</span>
+            <span class="kpi-value">R$ {{ "{:,.0f}".format(metrics.faturamento_30d).replace(",", ".") }}</span>
+            {% if metrics.variacao_faturamento_vs_meta_pct is not none %}
+            <span class="kpi-delta {{ 'text-error' if metrics.variacao_faturamento_vs_meta_pct < 0 else 'text-success' }}">
+                {{ "+" if metrics.variacao_faturamento_vs_meta_pct >= 0 else "" }}{{ metrics.variacao_faturamento_vs_meta_pct }}% vs. meta
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <span class="kpi-label">Margem sobre insumos</span>
+            <span class="kpi-value {{ 'text-error' if metrics.margem_30d < 0 else '' }}">{{ metrics.margem_30d }}%</span>
+            <span class="kpi-delta {{ 'text-error' if metrics.risco_critico else '' }}">{{ metrics.status_margem }}</span>
+        </div>
+
+        <div class="card">
+            <span class="kpi-label">Avaliação média (90 dias)</span>
+            {% if metrics.avaliacao_media %}
+            <span class="kpi-value">{{ metrics.avaliacao_media }} / 5.0</span>
+            <span class="kpi-delta {{ 'text-error' if metrics.tendencia_avaliacao == 'Tendência de queda' else '' }}">
+                {{ metrics.tendencia_avaliacao }}
+            </span>
+            {% else %}
+            <span class="kpi-value muted">--</span>
+            <span class="kpi-delta">sem avaliações válidas no período</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card chart-card">
+            <h2>Desvio de Faturamento</h2>
+            <p class="chart-caption">% vs. média histórica da própria loja -- últimas 8 semanas</p>
+            <img src="data:image/png;base64,{{ grafico_desvio_faturamento }}" alt="Desvio de faturamento" />
+        </div>
+        <div class="card chart-card">
+            <h2>Avaliações de Clientes</h2>
+            <p class="chart-caption">Volume de avaliações por semana; cor da barra = faixa da nota média</p>
+            <img src="data:image/png;base64,{{ grafico_avaliacoes }}" alt="Avaliações de clientes" />
+        </div>
+    </div>
+
+    {% if comentarios_criticos %}
+    <div class="card">
+        <h2 style="font-size:14px; font-weight:700; color:var(--color-neutral);">Comentários de Avaliações Baixas</h2>
+        <p class="chart-caption" style="margin-bottom:10px;">
+            Nota &lt; 3, últimos comentários com texto -- ajuda a entender o motivo por trás da nota
+        </p>
+        <ul class="comment-list">
+            {% for c in comentarios_criticos %}
+            <li class="comment-item">
+                <div class="comment-head">
+                    <span class="badge badge-error">{{ c.nota }}/5</span>
+                    <span class="muted small">{{ c.data.strftime('%d/%m/%Y') }} · {{ c.canal }}</span>
+                </div>
+                <p class="comment-text">&ldquo;{{ c.comentario }}&rdquo;</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>

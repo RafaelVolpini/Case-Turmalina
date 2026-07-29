@@ -1,0 +1,112 @@
+<div id="comparativo-section" class="card" style="padding:20px;">
+    <h2 style="font-size:15px; font-weight:700; color:var(--color-neutral); margin-bottom:2px;">
+        Comparar Lojas
+    </h2>
+    <p class="page-subtitle" style="margin-bottom:14px;">Escolha duas lojas para comparar faturamento, margem e avaliações.</p>
+
+    <div class="selectors-row" style="margin-bottom:16px;">
+        <div class="field" style="width:260px;">
+            <span class="field-label">LOJA A</span>
+            <div class="field-row">
+                <span class="dot dot-error"></span>
+                <select name="loja_a"
+                        class="select"
+                        hx-get="/comparativo/fragment"
+                        hx-target="#comparativo-section"
+                        hx-swap="outerHTML"
+                        hx-include="[name='loja_b']"
+                        hx-trigger="change">
+                    {% for opt in opcoes %}
+                    <option value="{{ opt.id_loja }}" {{ "selected" if opt.id_loja == loja_a else "" }}>{{ opt.nome_loja }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <span class="vs-label">VS</span>
+        <div class="field" style="width:260px;">
+            <span class="field-label">LOJA B</span>
+            <div class="field-row">
+                <span class="dot"></span>
+                <select name="loja_b"
+                        class="select"
+                        hx-get="/comparativo/fragment"
+                        hx-target="#comparativo-section"
+                        hx-swap="outerHTML"
+                        hx-include="[name='loja_a']"
+                        hx-trigger="change">
+                    {% for opt in opcoes %}
+                    <option value="{{ opt.id_loja }}" {{ "selected" if opt.id_loja == loja_b else "" }}>{{ opt.nome_loja }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-3">
+        <div class="card">
+            <span class="kpi-label">Faturamento (30 dias)</span>
+            <div class="compare-row">
+                <span class="dot dot-error"></span>
+                <span class="store-name">{{ a.nome_loja }}</span>
+                <span class="value">R$ {{ "{:,.0f}".format(a.faturamento_30d).replace(",", ".") }}</span>
+            </div>
+            <div class="compare-row">
+                <span class="dot"></span>
+                <span class="store-name">{{ b.nome_loja }}</span>
+                <span class="value">R$ {{ "{:,.0f}".format(b.faturamento_30d).replace(",", ".") }}</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="kpi-label">Variação de margem (30 dias)</span>
+            <div class="compare-row">
+                <span class="dot dot-error"></span>
+                <span class="store-name">{{ a.nome_loja }}</span>
+                <span class="value {{ 'text-error' if a.variacao_margem_pp < 0 else 'text-success' }}">
+                    {{ "+" if a.variacao_margem_pp >= 0 else "" }}{{ a.variacao_margem_pp }} p.p.
+                </span>
+            </div>
+            <div class="compare-row">
+                <span class="dot"></span>
+                <span class="store-name">{{ b.nome_loja }}</span>
+                <span class="value {{ 'text-error' if b.variacao_margem_pp < 0 else 'text-success' }}">
+                    {{ "+" if b.variacao_margem_pp >= 0 else "" }}{{ b.variacao_margem_pp }} p.p.
+                </span>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="kpi-label">Avaliação média (90 dias)</span>
+            <div class="compare-row">
+                <span class="dot dot-error"></span>
+                <span class="store-name">{{ a.nome_loja }}</span>
+                <span class="value">{{ a.avaliacao_media if a.avaliacao_media else "--" }}</span>
+            </div>
+            <div class="compare-row">
+                <span class="dot"></span>
+                <span class="store-name">{{ b.nome_loja }}</span>
+                <span class="value">{{ b.avaliacao_media if b.avaliacao_media else "--" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:16px;">
+        <div class="card chart-card">
+            <h2>Faturamento por Mês</h2>
+            <p class="chart-caption">R$ de faturamento bruto, mês a mês</p>
+            <img src="data:image/png;base64,{{ grafico_faturamento_mensal }}" alt="Faturamento mensal" />
+        </div>
+        <div class="card chart-card">
+            <h2>Desvio de Faturamento</h2>
+            <p class="chart-caption">% vs. média histórica de cada loja -- últimas 8 semanas</p>
+            <img src="data:image/png;base64,{{ grafico_desvio_faturamento }}" alt="Desvio de faturamento" />
+        </div>
+    </div>
+    <div class="grid" style="margin-top:16px;">
+        <div class="card chart-card">
+            <h2>Avaliações de Clientes</h2>
+            <p class="chart-caption">Volume por semana; altura = quantidade, opacidade = nota média</p>
+            <img src="data:image/png;base64,{{ grafico_avaliacoes }}" alt="Avaliações comparadas" />
+        </div>
+    </div>
+</div>
