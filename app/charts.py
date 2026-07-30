@@ -1,19 +1,6 @@
-"""
-Gráficos renderizados no servidor com Plotly, devolvidos como fragmento HTML
-(<div> + <script>) para embutir direto no template via `{{ ... | safe }}`.
-
-Escolha deliberada: mantém tudo em Python (pip install plotly, sem passo de
-build, sem npm/npx) -- o único JavaScript envolvido é o bundle do Plotly.js
-carregado uma única vez via <script> no <head> de base.html; cada função
-aqui só gera o HTML do gráfico (`fig.to_html(include_plotlyjs=False, ...)`),
-reaproveitando esse bundle já carregado na página.
-
-Paleta, tipografia, raio e hoverlabel seguem os tokens de docs/DESIGN.md:
-vermelho (#BA1A1A) é usado *só* como sinal de alerta -- ponto/nota/loja em
-variação negativa forte --, nunca como identidade fixa de série. As duas
-lojas comparadas usam verde-petróleo (#00413C, primary) e marrom-café
-(#725A42, secondary) como identidade neutra.
-"""
+"""Gera os gráficos Plotly do dashboard, como fragmentos HTML prontos pro template.
+Entrada: nenhuma (módulo). Cada função recebe DataFrames já calculados por app/data_loader.py.
+Retorno: cada função de gráfico devolve str (HTML do gráfico, sem o bundle do Plotly.js)."""
 
 from __future__ import annotations
 
@@ -39,7 +26,7 @@ ON_SURFACE = "#121C2A"
 ON_SURFACE_VARIANT = "#3F4947"
 GRID_COLOR = "#E6EEFF"                 # surface-container, grade discreta
 
-LIMIAR_QUEDA_FORTE_PCT = -8.0  # abaixo disso, o ponto vira vermelho (alerta), não a série toda
+LIMIAR_QUEDA_FORTE_PP = -8.0  # abaixo disso (p.p.), o ponto vira vermelho (alerta), não a série toda
 
 _MESES_PT = {
     1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr", 5: "Mai", 6: "Jun",
@@ -48,17 +35,23 @@ _MESES_PT = {
 
 
 def _rotulo_semana(data: pd.Timestamp) -> str:
-    """dd/Mmm/aa (ex.: '12/Mai/25') -- em vez do rótulo posicional 'S-7'/'Atual',
-    que não dizia a que semana do calendário cada ponto correspondia."""
+    """Formata uma data como rótulo de semana no eixo X.
+    Entrada: data (pd.Timestamp), início da semana.
+    Retorno: str no formato "dd/Mmm/aa"."""
     return f"{data.day:02d}/{_MESES_PT[data.month]}/{data.strftime('%y')}"
 
 
 def _rotulo_mes(data: pd.Timestamp) -> str:
-    """Mmm/aa (ex.: 'Mai/25'), nomes de mês em pt-BR -- strftime('%b') sai em inglês."""
+    """Formata uma data como rótulo de mês no eixo X, em pt-BR.
+    Entrada: data (pd.Timestamp), início do mês.
+    Retorno: str no formato "Mmm/aa"."""
     return f"{_MESES_PT[data.month]}/{data.strftime('%y')}"
 
 
 def _cor_por_nota(nota: float) -> str:
+    """Escolhe a cor da faixa de uma nota de avaliação.
+    Entrada: nota (float), pode ser NaN.
+    Retorno: str, código de cor hex."""
     if pd.isna(nota):
         return ON_SURFACE_VARIANT
     if nota < 3:
@@ -69,15 +62,23 @@ def _cor_por_nota(nota: float) -> str:
 
 
 def _texto_nota(nota: float) -> str:
+    """Formata uma nota de avaliação como texto de hover.
+    Entrada: nota (float), pode ser NaN.
+    Retorno: str, ex. "4.5 de 5" ou "sem nota registrada"."""
     return f"{nota:.1f} de 5" if pd.notna(nota) else "sem nota registrada"
 
 
 def _fmt_moeda(valor: float) -> str:
+    """Formata um valor em reais sem casas decimais e com separador de milhar.
+    Entrada: valor (float).
+    Retorno: str."""
     return "{:,.0f}".format(valor).replace(",", ".")
 
 
 def _hoverlabel() -> dict:
-    """Tooltip totalmente adaptado ao design system -- nunca o cinza padrão do Plotly."""
+    """Monta o estilo do tooltip do Plotly, alinhado ao design system.
+    Entrada: nenhuma.
+    Retorno: dict de configuração de hoverlabel."""
     return dict(
         bgcolor=SURFACE_CONTAINER_LOWEST,
         bordercolor=COLOR_PRIMARY,
@@ -86,7 +87,9 @@ def _hoverlabel() -> dict:
 
 
 def _legend_horizontal_abaixo(ncol_hint: int = 2) -> dict:
-    """Legenda sempre visível, horizontal, abaixo da área de plotagem -- nunca por cima dos dados."""
+    """Monta a legenda horizontal fixa abaixo da área de plotagem.
+    Entrada: ncol_hint (int, não usado).
+    Retorno: dict de configuração de legend."""
     return dict(
         orientation="h",
         yanchor="top",
@@ -98,23 +101,33 @@ def _legend_horizontal_abaixo(ncol_hint: int = 2) -> dict:
     )
 
 
-def _apply_layout(fig: go.Figure, y_title: str, height: int = 360, top_margin: int = 16, y_range: list | None = None) -> go.Figure:
+def _apply_layout(
+    fig: go.Figure, y_title: str, height: int = 360, top_margin: int = 16,
+    y_range: list | None = None, x_categoryarray: list | None = None,
+) -> go.Figure:
+    """Aplica fonte, cores, legenda, hover e eixos padrão do design system a um gráfico.
+    Entrada: fig (go.Figure), y_title (str), height/top_margin (int), y_range (list | None), x_categoryarray (list | None).
+    Retorno: go.Figure, o mesmo objeto recebido."""
     fig.update_layout(
         autosize=True,
         font=dict(family=INTER, size=13, color=ON_SURFACE),
         plot_bgcolor=SURFACE_CONTAINER_LOWEST,
         paper_bgcolor="rgba(0,0,0,0)",
         hoverlabel=_hoverlabel(),
+        hovermode="x unified",  # caixa única no topo do gráfico, nunca sobre o ponto/linha
         legend=_legend_horizontal_abaixo(),
         margin=dict(l=56, r=16, t=top_margin, b=72),
         height=height,
         bargap=0.35,
     )
-    fig.update_xaxes(
+    xaxis_kwargs = dict(
         showgrid=False,
         linecolor=GRID_COLOR,
         tickfont=dict(family=INTER, size=12, color=ON_SURFACE_VARIANT),
     )
+    if x_categoryarray is not None:
+        xaxis_kwargs.update(categoryorder="array", categoryarray=x_categoryarray)  # ordem cronológica explícita, não ordem de inserção
+    fig.update_xaxes(**xaxis_kwargs)
     fig.update_yaxes(
         showgrid=True,
         gridcolor=GRID_COLOR,
@@ -127,15 +140,18 @@ def _apply_layout(fig: go.Figure, y_title: str, height: int = 360, top_margin: i
 
 
 def _headroom(*volumes: pd.Series, factor: float = 1.28) -> list:
-    """Amplia o teto do eixo Y pra o rótulo 'outside' (nota acima da barra) não
-    ser cortado pela borda do gráfico -- o auto-range do Plotly não reserva
-    espaço pra texto fora da barra."""
+    """Amplia o teto do eixo Y pra o rótulo de texto acima da barra não ser cortado.
+    Entrada: volumes (pd.Series, um ou mais), factor (float, multiplicador do máximo).
+    Retorno: list [0, topo] pro range do eixo Y."""
     maximo = max((v.max() for v in volumes if len(v)), default=0)
     topo = maximo * factor if maximo > 0 else 1
     return [0, topo]
 
 
 def _to_html(fig: go.Figure) -> str:
+    """Serializa uma figura Plotly como fragmento HTML, sem o bundle do Plotly.js.
+    Entrada: fig (go.Figure).
+    Retorno: str."""
     return fig.to_html(
         full_html=False,
         include_plotlyjs=False,
@@ -147,12 +163,14 @@ def _to_html(fig: go.Figure) -> str:
 # Gráficos
 # ---------------------------------------------------------------------------
 
-def desvio_faturamento(semanal: pd.DataFrame) -> str:
-    """Linha única do desvio (%) do faturamento semanal vs. média histórica da própria loja."""
+def desvio_margem(semanal: pd.DataFrame) -> str:
+    """Desenha a linha de desvio semanal de margem operacional de uma loja.
+    Entrada: semanal (pd.DataFrame) com as colunas semana e desvio_pp.
+    Retorno: str (HTML do gráfico)."""
     x = semanal["semana"].apply(_rotulo_semana)
     cores_pontos = [
-        COLOR_ERROR if v <= LIMIAR_QUEDA_FORTE_PCT else COLOR_PRIMARY_CONTAINER
-        for v in semanal["desvio_pct"]
+        COLOR_ERROR if v <= LIMIAR_QUEDA_FORTE_PP else COLOR_PRIMARY_CONTAINER
+        for v in semanal["desvio_pp"]
     ]
 
     fig = go.Figure()
@@ -160,25 +178,23 @@ def desvio_faturamento(semanal: pd.DataFrame) -> str:
         x=x, y=[0] * len(semanal),
         mode="lines", name="Média histórica (referência)",
         line=dict(color=COLOR_NEUTRAL_LINE, width=1.5, dash="dash"),
-        hovertemplate="Referência: média histórica de faturamento da loja (0%)<extra></extra>",
+        hoverinfo="skip",  # hover unificado repetiria este texto em todo x; legenda já identifica a linha
     ))
     fig.add_trace(go.Scatter(
-        x=x, y=semanal["desvio_pct"],
-        mode="lines+markers", name="Desvio semanal de faturamento",
+        x=x, y=semanal["desvio_pp"],
+        mode="lines+markers", name="Desvio semanal de margem",
         line=dict(color=COLOR_PRIMARY, width=2.5),
         marker=dict(size=10, color=cores_pontos, line=dict(color="#FFFFFF", width=1)),
-        hovertemplate="<b>%{x}</b><br>Desvio de faturamento: %{y:.1f}% vs. média histórica da loja<extra></extra>",
+        hovertemplate="Desvio de margem: %{y:.1f} p.p. vs. média histórica da loja<extra></extra>",
     ))
-    _apply_layout(fig, y_title="Desvio vs. média histórica (%)")
+    _apply_layout(fig, y_title="Desvio vs. média histórica (p.p.)")
     return _to_html(fig)
 
 
 def avaliacoes_volume_nota(semanal: pd.DataFrame) -> str:
-    """
-    Barras: altura = volume de avaliações na semana, cor = faixa da nota média
-    (vermelho < 3 = alerta, âmbar 3-4, verde >= 4). Sempre em barras -- nunca
-    linha -- para deixar claro que cada barra é uma contagem discreta por semana.
-    """
+    """Desenha as barras de volume e nota média de avaliações por semana de uma loja.
+    Entrada: semanal (pd.DataFrame) com as colunas semana, nota_media e volume.
+    Retorno: str (HTML do gráfico)."""
     x = semanal["semana"].apply(_rotulo_semana)
     cores = [_cor_por_nota(n) for n in semanal["nota_media"]]
     texto_barra = [f"{n:.1f}" if pd.notna(n) else "s/ nota" for n in semanal["nota_media"]]
@@ -191,13 +207,10 @@ def avaliacoes_volume_nota(semanal: pd.DataFrame) -> str:
         text=texto_barra, textposition="outside",
         textfont=dict(family=INTER, size=11, color=ON_SURFACE),
         customdata=texto_hover,
-        hovertemplate="<b>%{x}</b><br>Volume de avaliações: %{y}<br>Nota média: %{customdata}<extra></extra>",
+        hovertemplate="Volume de avaliações: %{y}<br>Nota média: %{customdata}<extra></extra>",
     ))
 
-    # Entradas de legenda "fantasma" (sem dado real) só para expor a faixa de cor,
-    # já que a barra real varia de cor por ponto e não teria legenda própria.
-    # Scatter (não Bar): um traço Bar a mais aqui dividiria a largura das
-    # barras reais no barmode, deixando-as finas sem necessidade.
+    # traços fantasma (x/y=[None]) só pra expor a legenda de faixa de cor
     for rotulo, cor in [
         ("Nota média abaixo de 3 (alerta)", COLOR_ERROR),
         ("Nota média entre 3 e 4", COLOR_WARNING),
@@ -216,123 +229,104 @@ def avaliacoes_volume_nota(semanal: pd.DataFrame) -> str:
 
 
 def comparativo_faturamento_mensal(mensal_a: pd.DataFrame, mensal_b: pd.DataFrame, nome_a: str, nome_b: str) -> str:
-    """
-    Faturamento absoluto (R$) por mês, uma linha por loja -- identidade neutra,
-    sem vermelho. Cada loja ganha também uma linha pontilhada com a própria
-    média mensal no período mostrado, pra dar uma referência de "acima ou
-    abaixo do normal" (sem isso, só dava pra comparar mês a mês entre as duas
-    lojas, nunca cada loja contra o próprio histórico).
-    """
-    x_a = mensal_a["mes"].apply(_rotulo_mes)
-    x_b = mensal_b["mes"].apply(_rotulo_mes)
-    fmt_a = [_fmt_moeda(v) for v in mensal_a["faturamento"]]
-    fmt_b = [_fmt_moeda(v) for v in mensal_b["faturamento"]]
+    """Desenha o faturamento mensal de duas lojas, com linha de média de cada uma.
+    Entrada: mensal_a, mensal_b (pd.DataFrame, mesmo eixo de meses, ver data_loader.monthly_faturamento_comparativo), nome_a, nome_b (str).
+    Retorno: str (HTML do gráfico)."""
+    x = mensal_a["mes"].apply(_rotulo_mes)  # eixo compartilhado -- x_a e x_b são idênticos
+    fmt_a = [_fmt_moeda(v) if pd.notna(v) else "N/D" for v in mensal_a["faturamento"]]
+    fmt_b = [_fmt_moeda(v) if pd.notna(v) else "N/D" for v in mensal_b["faturamento"]]
     media_a = mensal_a["faturamento"].mean()
     media_b = mensal_b["faturamento"].mean()
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=x_a, y=mensal_a["faturamento"], mode="lines+markers", name=nome_a,
+        x=x, y=mensal_a["faturamento"], mode="lines+markers", name=nome_a,
         line=dict(color=COLOR_PRIMARY, width=2.5), marker=dict(size=8, color=COLOR_PRIMARY),
-        customdata=fmt_a,
-        hovertemplate=f"<b>%{{x}}</b><br>Faturamento de {nome_a}: R$ %{{customdata}}<extra></extra>",
+        connectgaps=False, customdata=fmt_a,
+        hovertemplate=f"Faturamento de {nome_a}: R$ %{{customdata}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=x_a, y=[media_a] * len(mensal_a), mode="lines", name=f"Média de {nome_a}",
+        x=x, y=[media_a] * len(mensal_a), mode="lines", name=f"Média de {nome_a}",
         line=dict(color=COLOR_PRIMARY, width=1.3, dash="dot"),
         hovertemplate=f"Média mensal de {nome_a} no período: R$ {_fmt_moeda(media_a)}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=x_b, y=mensal_b["faturamento"], mode="lines+markers", name=nome_b,
+        x=x, y=mensal_b["faturamento"], mode="lines+markers", name=nome_b,
         line=dict(color=COLOR_SECONDARY, width=2.5), marker=dict(size=8, color=COLOR_SECONDARY),
-        customdata=fmt_b,
-        hovertemplate=f"<b>%{{x}}</b><br>Faturamento de {nome_b}: R$ %{{customdata}}<extra></extra>",
+        connectgaps=False, customdata=fmt_b,
+        hovertemplate=f"Faturamento de {nome_b}: R$ %{{customdata}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=x_b, y=[media_b] * len(mensal_b), mode="lines", name=f"Média de {nome_b}",
+        x=x, y=[media_b] * len(mensal_b), mode="lines", name=f"Média de {nome_b}",
         line=dict(color=COLOR_SECONDARY, width=1.3, dash="dot"),
         hovertemplate=f"Média mensal de {nome_b} no período: R$ {_fmt_moeda(media_b)}<extra></extra>",
     ))
-    _apply_layout(fig, y_title="Faturamento (R$)")
+    _apply_layout(fig, y_title="Faturamento (R$)", x_categoryarray=list(x))
     return _to_html(fig)
 
 
-def comparativo_desvio_faturamento(semanal_a: pd.DataFrame, semanal_b: pd.DataFrame, nome_a: str, nome_b: str) -> str:
-    """
-    Duas linhas do desvio (%) do faturamento semanal vs. a própria média
-    histórica de cada loja. Identidade de série é sempre verde-petróleo (loja A)
-    e marrom-café (loja B) -- o vermelho só aparece nos pontos de queda forte
-    (<= -8%), independente de qual loja é "A" ou "B" na comparação.
-    """
-    x_a = semanal_a["semana"].apply(_rotulo_semana)
-    x_b = semanal_b["semana"].apply(_rotulo_semana)
-    cores_a = [COLOR_ERROR if v <= LIMIAR_QUEDA_FORTE_PCT else COLOR_PRIMARY for v in semanal_a["desvio_pct"]]
-    cores_b = [COLOR_ERROR if v <= LIMIAR_QUEDA_FORTE_PCT else COLOR_SECONDARY for v in semanal_b["desvio_pct"]]
+def comparativo_desvio_margem(mensal_a: pd.DataFrame, mensal_b: pd.DataFrame, nome_a: str, nome_b: str) -> str:
+    """Desenha o desvio mensal de margem operacional de duas lojas no mesmo eixo.
+    Entrada: mensal_a, mensal_b (pd.DataFrame, mesmo eixo de meses, ver data_loader.monthly_desvio_margem_comparativo), nome_a, nome_b (str).
+    Retorno: str (HTML do gráfico)."""
+    x = mensal_a["mes"].apply(_rotulo_mes)  # eixo compartilhado -- x_a e x_b são idênticos
+    # NaN em desvio_pp = loja sem mês completo/com venda; connectgaps=False deixa o buraco visível
+    cores_a = [COLOR_ERROR if pd.notna(v) and v <= LIMIAR_QUEDA_FORTE_PP else COLOR_PRIMARY for v in mensal_a["desvio_pp"]]
+    cores_b = [COLOR_ERROR if pd.notna(v) and v <= LIMIAR_QUEDA_FORTE_PP else COLOR_SECONDARY for v in mensal_b["desvio_pp"]]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=x_a, y=[0] * len(semanal_a),
-        mode="lines", name="0% = média histórica de cada loja",
+        x=x, y=[0] * len(mensal_a),
+        mode="lines", name="0 p.p. = média histórica de cada loja",
         line=dict(color=COLOR_NEUTRAL_LINE, width=1.5, dash="dash"),
-        hovertemplate=(
-            "0% é o ponto de referência de cada loja contra a própria média "
-            "histórica, não é um valor único: a média de "
-            f"{nome_a} e a de {nome_b} são diferentes, ambas caem em 0% aqui "
-            "porque o gráfico mostra desvio relativo, não R$ absoluto.<extra></extra>"
-        ),
+        hoverinfo="skip",  # ver nota em desvio_margem() sobre ruído em hover unificado
     ))
     fig.add_trace(go.Scatter(
-        x=x_a, y=semanal_a["desvio_pct"], mode="lines+markers", name=nome_a,
-        line=dict(color=COLOR_PRIMARY, width=2.5),
+        x=x, y=mensal_a["desvio_pp"], mode="lines+markers", name=nome_a,
+        line=dict(color=COLOR_PRIMARY, width=2.5), connectgaps=False,
         marker=dict(size=9, color=cores_a, line=dict(color="#FFFFFF", width=1)),
-        hovertemplate=f"<b>%{{x}}</b><br>Desvio de faturamento de {nome_a}: %{{y:.1f}}% vs. média histórica da própria loja<extra></extra>",
+        hovertemplate=f"{nome_a}: %{{y:.1f}} p.p. vs. média histórica da própria loja<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=x_b, y=semanal_b["desvio_pct"], mode="lines+markers", name=nome_b,
-        line=dict(color=COLOR_SECONDARY, width=2.5),
+        x=x, y=mensal_b["desvio_pp"], mode="lines+markers", name=nome_b,
+        line=dict(color=COLOR_SECONDARY, width=2.5), connectgaps=False,
         marker=dict(size=9, color=cores_b, line=dict(color="#FFFFFF", width=1)),
-        hovertemplate=f"<b>%{{x}}</b><br>Desvio de faturamento de {nome_b}: %{{y:.1f}}% vs. média histórica da própria loja<extra></extra>",
+        hovertemplate=f"{nome_b}: %{{y:.1f}} p.p. vs. média histórica da própria loja<extra></extra>",
     ))
-    _apply_layout(fig, y_title="Desvio de faturamento (%)")
+    _apply_layout(fig, y_title="Desvio de margem (p.p.)", x_categoryarray=list(x))
     return _to_html(fig)
 
 
-def comparativo_avaliacoes(semanal_a: pd.DataFrame, semanal_b: pd.DataFrame, nome_a: str, nome_b: str) -> str:
-    """
-    Barras agrupadas (uma por loja, por semana): altura = volume de avaliações,
-    cor = faixa da nota média (vermelho < 3, âmbar 3-4, verde >= 4) -- mesmo
-    padrão do gráfico de Avaliações da Análise Individual. Como a cor já é
-    ocupada pela nota, loja A e loja B se diferenciam por textura (A sólida,
-    B com textura diagonal), não por cor.
-    """
-    x_a = semanal_a["semana"].apply(_rotulo_semana)
-    x_b = semanal_b["semana"].apply(_rotulo_semana)
-    cores_a = [_cor_por_nota(n) for n in semanal_a["nota_media"]]
-    cores_b = [_cor_por_nota(n) for n in semanal_b["nota_media"]]
-    texto_a = [f"{n:.1f}" if pd.notna(n) else "s/ nota" for n in semanal_a["nota_media"]]
-    texto_b = [f"{n:.1f}" if pd.notna(n) else "s/ nota" for n in semanal_b["nota_media"]]
-    hover_nota_a = [_texto_nota(n) for n in semanal_a["nota_media"]]
-    hover_nota_b = [_texto_nota(n) for n in semanal_b["nota_media"]]
+def comparativo_avaliacoes(mensal_a: pd.DataFrame, mensal_b: pd.DataFrame, nome_a: str, nome_b: str) -> str:
+    """Desenha volume e nota média de avaliações de duas lojas, em barras agrupadas por mês.
+    Entrada: mensal_a, mensal_b (pd.DataFrame, mesmo eixo de meses, ver data_loader.monthly_avaliacoes_comparativo), nome_a, nome_b (str).
+    Retorno: str (HTML do gráfico)."""
+    x = mensal_a["mes"].apply(_rotulo_mes)  # eixo compartilhado -- x_a e x_b são idênticos
+    # loja A sólida, loja B com textura diagonal -- cor já é usada pra faixa de nota
+    cores_a = [_cor_por_nota(n) for n in mensal_a["nota_media"]]
+    cores_b = [_cor_por_nota(n) for n in mensal_b["nota_media"]]
+    texto_a = [f"{n:.1f}" if pd.notna(n) else "s/ nota" for n in mensal_a["nota_media"]]
+    texto_b = [f"{n:.1f}" if pd.notna(n) else "s/ nota" for n in mensal_b["nota_media"]]
+    hover_nota_a = [_texto_nota(n) for n in mensal_a["nota_media"]]
+    hover_nota_b = [_texto_nota(n) for n in mensal_b["nota_media"]]
 
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        x=x_a, y=semanal_a["volume"], name=nome_a, showlegend=False,
+        x=x, y=mensal_a["volume"], name=nome_a, showlegend=False,
         marker=dict(color=cores_a, pattern=dict(shape=""), line=dict(color="#FFFFFF", width=1)),
         text=texto_a, textposition="outside", textfont=dict(family=INTER, size=10.5, color=ON_SURFACE),
         customdata=hover_nota_a,
-        hovertemplate=f"<b>%{{x}}</b><br>{nome_a} · volume de avaliações: %{{y}}<br>Nota média: %{{customdata}}<extra></extra>",
+        hovertemplate=f"{nome_a} · volume de avaliações: %{{y}}<br>Nota média: %{{customdata}}<extra></extra>",
     ))
     fig.add_trace(go.Bar(
-        x=x_b, y=semanal_b["volume"], name=nome_b, showlegend=False,
+        x=x, y=mensal_b["volume"], name=nome_b, showlegend=False,
         marker=dict(color=cores_b, pattern=dict(shape="/", fgcolor="#FFFFFF", size=6, solidity=0.35), line=dict(color="#FFFFFF", width=1)),
         text=texto_b, textposition="outside", textfont=dict(family=INTER, size=10.5, color=ON_SURFACE),
         customdata=hover_nota_b,
-        hovertemplate=f"<b>%{{x}}</b><br>{nome_b} · volume de avaliações: %{{y}}<br>Nota média: %{{customdata}}<extra></extra>",
+        hovertemplate=f"{nome_b} · volume de avaliações: %{{y}}<br>Nota média: %{{customdata}}<extra></extra>",
     ))
 
-    # Legenda "fantasma": cor explica a nota, textura explica qual loja é qual.
-    # Scatter (não Bar): um traço Bar a mais aqui dividiria a largura das
-    # barras reais no barmode, deixando-as finas sem necessidade.
+    # traços fantasma: cor explica a nota, textura explica qual loja é qual
     for rotulo, cor in [
         ("Nota média abaixo de 3 (alerta)", COLOR_ERROR),
         ("Nota média entre 3 e 4", COLOR_WARNING),
@@ -354,19 +348,16 @@ def comparativo_avaliacoes(semanal_a: pd.DataFrame, semanal_b: pd.DataFrame, nom
     fig.update_layout(barmode="group")
     _apply_layout(
         fig, y_title="Volume de avaliações",
-        top_margin=36, y_range=_headroom(semanal_a["volume"], semanal_b["volume"]),
+        top_margin=36, y_range=_headroom(mensal_a["volume"], mensal_b["volume"]),
+        x_categoryarray=list(x),
     )
     return _to_html(fig)
 
 
 def tendencia_expansao(mensal: pd.DataFrame) -> str:
-    """
-    Barras divergentes por mês: quantas lojas faturaram mais (verde, acima de
-    zero) ou menos (vermelho, abaixo de zero) que no mês IMEDIATAMENTE
-    ANTERIOR -- nunca contra uma média histórica completa (ver
-    data_loader.tendencia_expansao). `mensal` já vem calculado de lá, com
-    colunas mes/positivas/negativas/lojas_ativas.
-    """
+    """Desenha barras divergentes de lojas faturando mais ou menos que no mês anterior.
+    Entrada: mensal (pd.DataFrame) com as colunas mes, positivas, negativas e lojas_ativas (ver data_loader.tendencia_expansao).
+    Retorno: str (HTML do gráfico)."""
     x = mensal["mes"].apply(_rotulo_mes)
 
     fig = go.Figure()
@@ -374,13 +365,13 @@ def tendencia_expansao(mensal: pd.DataFrame) -> str:
         x=x, y=mensal["positivas"], name="Lojas crescendo vs. mês anterior",
         marker_color=COLOR_SUCCESS,
         customdata=mensal["lojas_ativas"],
-        hovertemplate="<b>%{x}</b><br>%{y} loja(s) faturaram mais que no mês anterior<br>Lojas ativas no mês: %{customdata}<extra></extra>",
+        hovertemplate="%{y} loja(s) faturaram mais que no mês anterior<br>Lojas ativas no mês: %{customdata}<extra></extra>",
     ))
     fig.add_trace(go.Bar(
         x=x, y=-mensal["negativas"], name="Lojas encolhendo vs. mês anterior",
         marker_color=COLOR_ERROR,
         customdata=list(zip(mensal["negativas"], mensal["lojas_ativas"])),
-        hovertemplate="<b>%{x}</b><br>%{customdata[0]} loja(s) faturaram menos que no mês anterior<br>Lojas ativas no mês: %{customdata[1]}<extra></extra>",
+        hovertemplate="%{customdata[0]} loja(s) faturaram menos que no mês anterior<br>Lojas ativas no mês: %{customdata[1]}<extra></extra>",
     ))
     fig.add_hline(y=0, line_width=1.5, line_color=COLOR_NEUTRAL_LINE)
 

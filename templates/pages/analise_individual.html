@@ -28,7 +28,11 @@
 
         <div class="card">
             <span class="kpi-label">Margem sobre insumos</span>
+            {% if metrics.margem_30d is not none %}
             <span class="kpi-value {{ 'text-error' if metrics.margem_30d < 0 else '' }}">{{ metrics.margem_30d }}%</span>
+            {% else %}
+            <span class="kpi-value muted">N/D</span>
+            {% endif %}
             <span class="kpi-delta {{ 'text-error' if metrics.risco_critico else '' }}">{{ metrics.status_margem }}</span>
         </div>
 
@@ -48,9 +52,9 @@
 
     <div class="grid grid-2">
         <div class="card chart-card">
-            <h2>Desvio de Faturamento</h2>
-            <p class="chart-caption">% vs. média histórica da própria loja · últimas 8 semanas</p>
-            {{ grafico_desvio_faturamento | safe }}
+            <h2>Desvio de Margem Operacional</h2>
+            <p class="chart-caption">p.p. vs. média histórica da própria loja · últimas 8 semanas</p>
+            {{ grafico_desvio_margem | safe }}
         </div>
         <div class="card chart-card">
             <h2>Avaliações de Clientes</h2>

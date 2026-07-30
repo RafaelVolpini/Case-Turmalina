@@ -8,10 +8,16 @@ templates = Jinja2Templates(directory="templates")
 
 
 def _is_htmx(request: Request) -> bool:
+    """Detecta se a requisição veio de um fragmento HTMX.
+    Entrada: request (Request).
+    Retorno: bool."""
     return request.headers.get("HX-Request") == "true"
 
 
 def _sidebar_ctx(active_id: str | None = None, active_tab: str = "individual") -> dict:
+    """Monta o contexto de template da sidebar de lojas.
+    Entrada: active_id (str | None, loja selecionada), active_tab (str, aba ativa).
+    Retorno: dict com lojas_sidebar, active_loja, active_tab e n_criticas."""
     return {
         "lojas_sidebar": dl.list_stores_summary(),
         "active_loja": active_id,
@@ -21,18 +27,16 @@ def _sidebar_ctx(active_id: str | None = None, active_tab: str = "individual") -
 
 
 def _comparativo_ctx(loja_a: str, loja_b: str) -> dict:
-    # id_loja pode chegar minúsculo de URL/query digitada à mão (o CSV já é
-    # normalizado em data_loader, mas a entrada externa não é garantida).
-    loja_a, loja_b = loja_a.strip().upper(), loja_b.strip().upper()
+    """Monta o contexto de template com métricas e gráficos comparando duas lojas.
+    Entrada: loja_a (str), loja_b (str), ids de loja.
+    Retorno: dict com métricas ("a", "b"), gráficos e comentários de atenção das duas lojas."""
+    loja_a, loja_b = loja_a.strip().upper(), loja_b.strip().upper()  # entrada externa pode vir minúscula
     metrics_a = dl.store_metrics(loja_a)
     metrics_b = dl.store_metrics(loja_b)
 
-    semanal_fat_a, _ = dl.weekly_desvio_faturamento(loja_a)
-    semanal_fat_b, _ = dl.weekly_desvio_faturamento(loja_b)
-    mensal_fat_a = dl.monthly_faturamento(loja_a)
-    mensal_fat_b = dl.monthly_faturamento(loja_b)
-    semanal_aval_a = dl.weekly_avaliacoes(loja_a)
-    semanal_aval_b = dl.weekly_avaliacoes(loja_b)
+    mensal_margem_a, mensal_margem_b = dl.monthly_desvio_margem_comparativo(loja_a, loja_b)
+    mensal_fat_a, mensal_fat_b = dl.monthly_faturamento_comparativo(loja_a, loja_b)
+    mensal_aval_a, mensal_aval_b = dl.monthly_avaliacoes_comparativo(loja_a, loja_b)
 
     return {
         "opcoes": dl.list_lojas_options(),
@@ -43,15 +47,13 @@ def _comparativo_ctx(loja_a: str, loja_b: str) -> dict:
         "grafico_faturamento_mensal": charts.comparativo_faturamento_mensal(
             mensal_fat_a, mensal_fat_b, metrics_a["nome_loja"], metrics_b["nome_loja"],
         ),
-        "grafico_desvio_faturamento": charts.comparativo_desvio_faturamento(
-            semanal_fat_a, semanal_fat_b, metrics_a["nome_loja"], metrics_b["nome_loja"],
+        "grafico_desvio_margem": charts.comparativo_desvio_margem(
+            mensal_margem_a, mensal_margem_b, metrics_a["nome_loja"], metrics_b["nome_loja"],
         ),
         "grafico_avaliacoes": charts.comparativo_avaliacoes(
-            semanal_aval_a, semanal_aval_b, metrics_a["nome_loja"], metrics_b["nome_loja"],
+            mensal_aval_a, mensal_aval_b, metrics_a["nome_loja"], metrics_b["nome_loja"],
         ),
-        # Só os pontos de atenção aqui -- na tela de comparação o que importa é
-        # o que está errado em cada loja, não os elogios (esses já ficam na
-        # Análise Individual de cada uma).
+        # comparativo mostra só pontos de atenção; elogios ficam na Análise Individual
         "comentarios_atencao_a": dl.comentarios_destaque(loja_a)["pontos_atencao"],
         "comentarios_atencao_b": dl.comentarios_destaque(loja_b)["pontos_atencao"],
     }
@@ -59,6 +61,9 @@ def _comparativo_ctx(loja_a: str, loja_b: str) -> dict:
 
 @router.get("/")
 def prioridades(request: Request):
+    """Rota da tela 'Prioridades'.
+    Entrada: request (Request).
+    Retorno: TemplateResponse com o ranking de prioridade e o comparativo das duas lojas críticas."""
     ranking = dl.list_prioridades()
     criticas = ranking["criticas"]
     loja_a = criticas[0]["id_loja"]
@@ -80,14 +85,9 @@ def prioridades(request: Request):
 
 @router.get("/rede")
 def rede(request: Request, periodo: str = "12m"):
-    """
-    Aba 'Rede': retrato de contexto da rede inteira (não acionável como
-    Prioridades/Lojas) -- KPIs recalculados ao vivo pro período selecionado,
-    contagem de lojas indo bem/mal no mês mais recente e tendência de
-    expansão mês a mês (mês vs. mês anterior, nunca vs. média histórica
-    completa -- ver nota em tendencia_expansao). Retrato e tendência vêm do
-    mesmo DataFrame pra não haver duas fontes divergentes pro mesmo sinal.
-    """
+    """Rota da tela 'Rede'.
+    Entrada: request (Request), periodo (str, "6m"/"12m"/"fundacao").
+    Retorno: TemplateResponse com KPIs, retrato e tendência de expansão da rede."""
     if periodo not in dl.PERIODOS_REDE:
         periodo = "12m"
 
@@ -113,16 +113,21 @@ def rede(request: Request, periodo: str = "12m"):
 
 @router.get("/analise")
 def analise_individual_default(request: Request):
+    """Rota da tela 'Análise Individual' sem loja selecionada -- usa a primeira da lista.
+    Entrada: request (Request).
+    Retorno: TemplateResponse (delega para analise_individual)."""
     primeira = dl.list_stores_summary()[0]["id_loja"]
     return analise_individual(request, id_loja=primeira)
 
 
 @router.get("/lojas/{id_loja}")
 def analise_individual(request: Request, id_loja: str):
-    # idem: id_loja vem direto da URL, pode chegar minúsculo.
-    id_loja = id_loja.strip().upper()
+    """Rota da tela 'Análise Individual' de uma loja.
+    Entrada: request (Request), id_loja (str).
+    Retorno: TemplateResponse com métricas, gráficos e comentários da loja."""
+    id_loja = id_loja.strip().upper()  # pode chegar minúsculo pela URL
     metrics = dl.store_metrics(id_loja)
-    semanal_faturamento, _ = dl.weekly_desvio_faturamento(id_loja)
+    semanal_margem, _ = dl.weekly_desvio_margem(id_loja)
     semanal_avaliacoes = dl.weekly_avaliacoes(id_loja)
 
     is_htmx = _is_htmx(request)
@@ -130,7 +135,7 @@ def analise_individual(request: Request, id_loja: str):
         "request": request,
         "metrics": metrics,
         "is_htmx": is_htmx,
-        "grafico_desvio_faturamento": charts.desvio_faturamento(semanal_faturamento),
+        "grafico_desvio_margem": charts.desvio_margem(semanal_margem),
         "grafico_avaliacoes": charts.avaliacoes_volume_nota(semanal_avaliacoes),
         "comentarios": dl.comentarios_destaque(id_loja),
         **_sidebar_ctx(id_loja, active_tab="individual"),
@@ -144,14 +149,18 @@ def analise_individual(request: Request, id_loja: str):
 
 @router.get("/comparativo/fragment")
 def comparativo_fragment(request: Request, loja_a: str = Query(...), loja_b: str = Query(...)):
-    """Fragmento HTMX que atualiza só o bloco de comparação embutido na tela de Prioridades."""
+    """Fragmento HTMX que atualiza o bloco de comparação da tela de Prioridades.
+    Entrada: request (Request), loja_a (str), loja_b (str).
+    Retorno: TemplateResponse do fragmento comparativo_section.html."""
     ctx = {"request": request, **_comparativo_ctx(loja_a, loja_b)}
     return templates.TemplateResponse(request, "components/comparativo_section.html", ctx)
 
 
 @router.get("/relatorio")
 def gerar_relatorio(request: Request):
-    """Fragmento HTMX para o botão 'Generate Report' do header."""
+    """Fragmento HTMX com o relatório semanal de todas as lojas.
+    Entrada: request (Request).
+    Retorno: TemplateResponse do fragmento relatorio_modal.html."""
     resumo = dl.list_stores_summary()
     criticas = [l for l in resumo if l["risco_critico"]]
     ctx = {"request": request, "resumo": resumo, "criticas": criticas}

@@ -59,30 +59,64 @@
         </div>
     </div>
 
-    <div class="card">
-        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
-            <span class="kpi-label" style="margin-bottom:0;">Retrato agora</span>
-            <span class="small muted">{{ retrato.total }} lojas no total</span>
-        </div>
-
-        <div class="portrait-split">
-            <div class="portrait-half">
-                <span class="kpi-value text-success">{{ retrato.acima }}</span>
-                <span class="kpi-delta">loja{{ "s" if retrato.acima != 1 else "" }} indo bem</span>
+    <div class="grid grid-2">
+        <div class="card">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+                <span class="kpi-label" style="margin-bottom:0;">Retrato de agora{{ " (" + retrato.agora_mes_label + ")" if retrato.agora_mes_label else "" }}</span>
+                <span class="small muted">{{ retrato.agora_total }} lojas no total</span>
             </div>
-            <div class="portrait-divider"></div>
-            <div class="portrait-half">
-                <span class="kpi-value text-error">{{ retrato.abaixo }}</span>
-                <span class="kpi-delta">loja{{ "s" if retrato.abaixo != 1 else "" }} indo mal</span>
+
+            <div class="portrait-split">
+                <div class="portrait-half">
+                    <span class="kpi-value text-success">{{ retrato.agora_acima }}</span>
+                    <span class="kpi-delta">loja{{ "s" if retrato.agora_acima != 1 else "" }} indo bem</span>
+                </div>
+                <div class="portrait-divider"></div>
+                <div class="portrait-half">
+                    <span class="kpi-value text-error">{{ retrato.agora_abaixo }}</span>
+                    <span class="kpi-delta">loja{{ "s" if retrato.agora_abaixo != 1 else "" }} indo mal</span>
+                </div>
             </div>
+
+            <div class="portrait-bar" role="img" aria-label="{{ retrato.agora_acima }} de {{ retrato.agora_total }} lojas indo bem em {{ retrato.agora_mes_label }}">
+                <div class="portrait-bar-fill portrait-bar-good" style="width:{{ retrato.agora_pct_acima }}%;"></div>
+                <div class="portrait-bar-fill portrait-bar-bad" style="width:{{ retrato.agora_pct_abaixo }}%;"></div>
+            </div>
+
+            <p class="page-subtitle" style="margin-top:8px;">
+                Mês mais recente disponível, faturando mais ou menos que no mês anterior -- não muda com o período selecionado ao lado.
+            </p>
         </div>
 
-        <div class="portrait-bar" role="img" aria-label="{{ retrato.acima }} de {{ retrato.total }} lojas indo bem">
-            <div class="portrait-bar-fill portrait-bar-good" style="width:{{ retrato.pct_acima }}%;"></div>
-            <div class="portrait-bar-fill portrait-bar-bad" style="width:{{ retrato.pct_abaixo }}%;"></div>
-        </div>
+        <div class="card">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+                <span class="kpi-label" style="margin-bottom:0;">Média do período selecionado</span>
+                <span class="small muted">{{ ("%.1f" % retrato.media_total)|replace(".", ",") }} lojas em média por mês</span>
+            </div>
 
-        <p class="page-subtitle" style="margin-top:8px;">Faturamento dos últimos 30 dias vs. própria média histórica de cada loja</p>
+            <div class="portrait-split">
+                <div class="portrait-half">
+                    <span class="kpi-value text-success">{{ ("%.1f" % retrato.media_acima)|replace(".", ",") }}</span>
+                    <span class="kpi-delta">lojas indo bem, em média</span>
+                </div>
+                <div class="portrait-divider"></div>
+                <div class="portrait-half">
+                    <span class="kpi-value text-error">{{ ("%.1f" % retrato.media_abaixo)|replace(".", ",") }}</span>
+                    <span class="kpi-delta">lojas indo mal, em média</span>
+                </div>
+            </div>
+
+            <div class="portrait-bar" role="img" aria-label="em média {{ ("%.1f" % retrato.media_acima)|replace(".", ",") }} de {{ ("%.1f" % retrato.media_total)|replace(".", ",") }} lojas indo bem por mês">
+                <div class="portrait-bar-fill portrait-bar-good" style="width:{{ retrato.media_pct_acima }}%;"></div>
+                <div class="portrait-bar-fill portrait-bar-bad" style="width:{{ retrato.media_pct_abaixo }}%;"></div>
+            </div>
+
+            <p class="page-subtitle" style="margin-top:8px;">
+                Em média, {{ ("%.1f" % retrato.media_acima)|replace(".", ",") }} das {{ ("%.1f" % retrato.media_total)|replace(".", ",") }} lojas por mês faturam mais que no mês anterior
+                e {{ ("%.1f" % retrato.media_abaixo)|replace(".", ",") }} faturam menos -- média de {{ retrato.n_meses }}
+                mês{{ "es" if retrato.n_meses != 1 else "" }} dentro de {{ kpis.periodo_label|lower }}.
+            </p>
+        </div>
     </div>
 
     <div class="card chart-card">

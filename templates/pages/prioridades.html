@@ -24,12 +24,16 @@
             <div class="priority-card-head">
                 <span class="priority-rank">{{ loop.index }}</span>
                 <span class="priority-store-name">{{ loja.nome_loja }}</span>
+                {% if loja.risco_critico %}
                 <span class="badge badge-error" style="margin-left:auto;">Crítico</span>
+                {% else %}
+                <span class="badge badge-warning" style="margin-left:auto;">Atenção</span>
+                {% endif %}
             </div>
             <div class="priority-metrics">
                 <div>
                     <span class="kpi-label">Margem</span>
-                    <span class="kpi-value" style="font-size:19px;">{{ loja.margem_30d }}%</span>
+                    <span class="kpi-value" style="font-size:19px;">{{ loja.margem_30d ~ "%" if loja.margem_30d is not none else "N/D" }}</span>
                 </div>
                 <div>
                     <span class="kpi-label">Faturamento vs. meta</span>

@@ -63,16 +63,24 @@
             <div class="compare-row">
                 <span class="dot dot-error"></span>
                 <span class="store-name">{{ a.nome_loja }}</span>
+                {% if a.variacao_margem_pp is not none %}
                 <span class="value {{ 'text-error' if a.variacao_margem_pp < 0 else 'text-success' }}">
                     {{ "+" if a.variacao_margem_pp >= 0 else "" }}{{ a.variacao_margem_pp }} p.p.
                 </span>
+                {% else %}
+                <span class="value muted">N/D</span>
+                {% endif %}
             </div>
             <div class="compare-row">
                 <span class="dot"></span>
                 <span class="store-name">{{ b.nome_loja }}</span>
+                {% if b.variacao_margem_pp is not none %}
                 <span class="value {{ 'text-error' if b.variacao_margem_pp < 0 else 'text-success' }}">
                     {{ "+" if b.variacao_margem_pp >= 0 else "" }}{{ b.variacao_margem_pp }} p.p.
                 </span>
+                {% else %}
+                <span class="value muted">N/D</span>
+                {% endif %}
             </div>
         </div>
 
@@ -98,15 +106,15 @@
             {{ grafico_faturamento_mensal | safe }}
         </div>
         <div class="card chart-card">
-            <h2>Desvio de Faturamento</h2>
-            <p class="chart-caption">% vs. média histórica de cada loja · últimas 8 semanas</p>
-            {{ grafico_desvio_faturamento | safe }}
+            <h2>Desvio de Margem Operacional</h2>
+            <p class="chart-caption">p.p. vs. média histórica de cada loja · por mês</p>
+            {{ grafico_desvio_margem | safe }}
         </div>
     </div>
     <div class="grid" style="margin-top:16px;">
         <div class="card chart-card">
             <h2>Avaliações de Clientes</h2>
-            <p class="chart-caption">Volume por semana; altura = quantidade, opacidade = nota média</p>
+            <p class="chart-caption">Volume por mês; altura = quantidade, opacidade = nota média</p>
             {{ grafico_avaliacoes | safe }}
         </div>
     </div>

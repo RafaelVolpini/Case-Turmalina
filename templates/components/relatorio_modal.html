@@ -21,7 +21,9 @@
             <tr>
                 <td>{{ loja.nome_loja }}</td>
                 <td>R$ {{ "{:,.0f}".format(loja.faturamento_30d).replace(",", ".") }}</td>
-                <td class="{{ 'text-error' if loja.margem_30d < 0 else '' }}" style="font-weight:600;">{{ loja.margem_30d }}%</td>
+                <td class="{{ 'text-error' if loja.margem_30d is not none and loja.margem_30d < 0 else '' }}" style="font-weight:600;">
+                    {{ loja.margem_30d ~ "%" if loja.margem_30d is not none else "N/D" }}
+                </td>
                 <td>
                     {% if loja.risco_critico %}
                     <span class="badge badge-error">Risco Crítico</span>
