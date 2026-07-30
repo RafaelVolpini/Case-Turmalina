@@ -1,0 +1,33 @@
+/* Estrutura geral da página: sidebar + área de conteúdo. */
+
+.layout {
+    display: flex;
+    align-items: flex-start;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.main-content {
+    flex: 1;
+    min-width: 0;
+    padding: 20px 24px 40px;
+    display: flex;
+    justify-content: center;
+}
+
+.stack { display: flex; flex-direction: column; gap: 20px; }
+
+.main-content > .stack {
+    width: 100%;
+    max-width: 1080px;
+}
+
+/* Prioridades não tem sidebar (ranking já cobre as 14 lojas) -- aproveita o
+   espaço liberado em vez de deixar uma faixa de conteúdo estreita e centralizada. */
+.main-content > .stack.stack-wide {
+    max-width: 1320px;
+}
+
+@media (max-width: 900px) {
+    .sidebar { display: none; }
+}

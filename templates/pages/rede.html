@@ -1,0 +1,112 @@
+<div class="stack stack-wide">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div>
+            <h1 style="font-size:22px; font-weight:800; color:var(--color-neutral);">Rede Turmalina Café</h1>
+            <p class="page-subtitle">
+                Contexto da rede inteira: o retrato que hoje vai pro conselho uma vez por mês, recalculado ao vivo.
+            </p>
+        </div>
+        <div class="field" style="width:220px;">
+            <span class="field-label">Período</span>
+            <select name="periodo" class="select"
+                    hx-get="/rede" hx-target="#main-content" hx-swap="innerHTML"
+                    hx-push-url="true" hx-trigger="change">
+                {% for valor, label in periodos.items() %}
+                <option value="{{ valor }}" {{ "selected" if valor == kpis.periodo else "" }}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="grid grid-4">
+        <div class="card">
+            <span class="kpi-label">Faturamento bruto total</span>
+            <span class="kpi-value">R$ {{ "{:,.0f}".format(kpis.faturamento_total).replace(",", ".") }}</span>
+            <span class="kpi-delta">{{ kpis.periodo_label|lower }} · {{ kpis.inicio.strftime('%d/%m/%Y') }} a {{ kpis.fim.strftime('%d/%m/%Y') }}</span>
+        </div>
+
+        <div class="card">
+            <span class="kpi-label">Crescimento no período</span>
+            {% if kpis.crescimento_pct is not none %}
+            <span class="kpi-value {{ 'text-error' if kpis.crescimento_pct < 0 else 'text-success' }}">
+                {{ "+" if kpis.crescimento_pct >= 0 else "" }}{{ kpis.crescimento_pct }}%
+            </span>
+            <span class="kpi-delta">2ª metade vs. 1ª metade do período</span>
+            {% else %}
+            <span class="kpi-value muted">N/D</span>
+            <span class="kpi-delta">sem faturamento na 1ª metade do período</span>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <span class="kpi-label">Margem sobre insumos</span>
+            {% if kpis.margem_pct is not none %}
+            <span class="kpi-value {{ 'text-error' if kpis.margem_pct < 0 else '' }}">{{ kpis.margem_pct }}%</span>
+            <span class="kpi-delta">faturamento menos descontos e insumos, {{ kpis.periodo_label|lower }}</span>
+            {% else %}
+            <span class="kpi-value muted">N/D</span>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <span class="kpi-label">Ticket médio</span>
+            {% if kpis.ticket_medio is not none %}
+            <span class="kpi-value">R$ {{ "{:,.2f}".format(kpis.ticket_medio).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
+            <span class="kpi-delta">faturamento bruto / total de tickets, {{ kpis.periodo_label|lower }}</span>
+            {% else %}
+            <span class="kpi-value muted">N/D</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+            <span class="kpi-label" style="margin-bottom:0;">Retrato agora</span>
+            <span class="small muted">{{ retrato.total }} lojas no total</span>
+        </div>
+
+        <div class="portrait-split">
+            <div class="portrait-half">
+                <span class="kpi-value text-success">{{ retrato.acima }}</span>
+                <span class="kpi-delta">loja{{ "s" if retrato.acima != 1 else "" }} indo bem</span>
+            </div>
+            <div class="portrait-divider"></div>
+            <div class="portrait-half">
+                <span class="kpi-value text-error">{{ retrato.abaixo }}</span>
+                <span class="kpi-delta">loja{{ "s" if retrato.abaixo != 1 else "" }} indo mal</span>
+            </div>
+        </div>
+
+        <div class="portrait-bar" role="img" aria-label="{{ retrato.acima }} de {{ retrato.total }} lojas indo bem">
+            <div class="portrait-bar-fill portrait-bar-good" style="width:{{ retrato.pct_acima }}%;"></div>
+            <div class="portrait-bar-fill portrait-bar-bad" style="width:{{ retrato.pct_abaixo }}%;"></div>
+        </div>
+
+        <p class="page-subtitle" style="margin-top:8px;">Faturamento dos últimos 30 dias vs. própria média histórica de cada loja</p>
+    </div>
+
+    <div class="card chart-card">
+        <h2>Tendência de Expansão</h2>
+        <p class="chart-caption">
+            Lojas faturando mais (verde) ou menos (vermelho) que no mês imediatamente anterior · {{ kpis.periodo_label|lower }}
+        </p>
+        {{ grafico_tendencia | safe }}
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--border-color);">
+        <p class="small muted" style="margin:0;">
+            Este sinal é contexto, não uma recomendação de expansão. Decisão de abrir novas lojas exige dado de custo
+            de investimento e retorno, que este sistema não possui.
+        </p>
+    </div>
+
+    <p class="page-subtitle">
+        Para decisões desta semana, veja a aba
+        <a class="back-link" style="text-decoration:underline;" href="/" hx-get="/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true">Prioridades</a>.
+    </p>
+</div>
+
+{% if is_htmx %}
+<aside class="sidebar" id="app-sidebar" hx-swap-oob="true" hidden></aside>
+{% with oob=true %}{% include "components/main_nav.html" %}{% endwith %}
+{% endif %}

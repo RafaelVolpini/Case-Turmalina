@@ -21,6 +21,9 @@ def _sidebar_ctx(active_id: str | None = None, active_tab: str = "individual") -
 
 
 def _comparativo_ctx(loja_a: str, loja_b: str) -> dict:
+    # id_loja pode chegar minúsculo de URL/query digitada à mão (o CSV já é
+    # normalizado em data_loader, mas a entrada externa não é garantida).
+    loja_a, loja_b = loja_a.strip().upper(), loja_b.strip().upper()
     metrics_a = dl.store_metrics(loja_a)
     metrics_b = dl.store_metrics(loja_b)
 
@@ -46,6 +49,11 @@ def _comparativo_ctx(loja_a: str, loja_b: str) -> dict:
         "grafico_avaliacoes": charts.comparativo_avaliacoes(
             semanal_aval_a, semanal_aval_b, metrics_a["nome_loja"], metrics_b["nome_loja"],
         ),
+        # Só os pontos de atenção aqui -- na tela de comparação o que importa é
+        # o que está errado em cada loja, não os elogios (esses já ficam na
+        # Análise Individual de cada uma).
+        "comentarios_atencao_a": dl.comentarios_destaque(loja_a)["pontos_atencao"],
+        "comentarios_atencao_b": dl.comentarios_destaque(loja_b)["pontos_atencao"],
     }
 
 
@@ -56,15 +64,50 @@ def prioridades(request: Request):
     loja_a = criticas[0]["id_loja"]
     loja_b = criticas[1]["id_loja"] if len(criticas) > 1 else dl.list_lojas_options()[1]["id_loja"]
 
+    is_htmx = _is_htmx(request)
     ctx = {
         "request": request,
         "criticas": criticas,
+        "is_htmx": is_htmx,
         **_comparativo_ctx(loja_a, loja_b),
         **_sidebar_ctx(None, active_tab="prioridades"),
     }
-    if _is_htmx(request):
+    if is_htmx:
         return templates.TemplateResponse(request, "pages/prioridades.html", ctx)
     ctx["conteudo_inicial"] = "pages/prioridades.html"
+    return templates.TemplateResponse(request, "base.html", ctx)
+
+
+@router.get("/rede")
+def rede(request: Request, periodo: str = "12m"):
+    """
+    Aba 'Rede': retrato de contexto da rede inteira (não acionável como
+    Prioridades/Lojas) -- KPIs recalculados ao vivo pro período selecionado,
+    contagem de lojas indo bem/mal no mês mais recente e tendência de
+    expansão mês a mês (mês vs. mês anterior, nunca vs. média histórica
+    completa -- ver nota em tendencia_expansao). Retrato e tendência vêm do
+    mesmo DataFrame pra não haver duas fontes divergentes pro mesmo sinal.
+    """
+    if periodo not in dl.PERIODOS_REDE:
+        periodo = "12m"
+
+    kpis = dl.rede_kpis(periodo)
+    mensal = dl.tendencia_expansao(periodo)
+    retrato = dl.retrato_atual(mensal)
+
+    is_htmx = _is_htmx(request)
+    ctx = {
+        "request": request,
+        "kpis": kpis,
+        "retrato": retrato,
+        "periodos": dl.PERIODOS_REDE,
+        "grafico_tendencia": charts.tendencia_expansao(mensal),
+        "is_htmx": is_htmx,
+        **_sidebar_ctx(None, active_tab="rede"),
+    }
+    if is_htmx:
+        return templates.TemplateResponse(request, "pages/rede.html", ctx)
+    ctx["conteudo_inicial"] = "pages/rede.html"
     return templates.TemplateResponse(request, "base.html", ctx)
 
 
@@ -76,20 +119,24 @@ def analise_individual_default(request: Request):
 
 @router.get("/lojas/{id_loja}")
 def analise_individual(request: Request, id_loja: str):
+    # idem: id_loja vem direto da URL, pode chegar minúsculo.
+    id_loja = id_loja.strip().upper()
     metrics = dl.store_metrics(id_loja)
     semanal_faturamento, _ = dl.weekly_desvio_faturamento(id_loja)
     semanal_avaliacoes = dl.weekly_avaliacoes(id_loja)
 
+    is_htmx = _is_htmx(request)
     ctx = {
         "request": request,
         "metrics": metrics,
+        "is_htmx": is_htmx,
         "grafico_desvio_faturamento": charts.desvio_faturamento(semanal_faturamento),
         "grafico_avaliacoes": charts.avaliacoes_volume_nota(semanal_avaliacoes),
-        "comentarios_criticos": dl.comentarios_criticos(id_loja),
+        "comentarios": dl.comentarios_destaque(id_loja),
         **_sidebar_ctx(id_loja, active_tab="individual"),
     }
 
-    if _is_htmx(request):
+    if is_htmx:
         return templates.TemplateResponse(request, "pages/analise_individual.html", ctx)
     ctx["conteudo_inicial"] = "pages/analise_individual.html"
     return templates.TemplateResponse(request, "base.html", ctx)

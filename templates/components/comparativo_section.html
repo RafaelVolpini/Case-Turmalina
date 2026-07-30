@@ -1,3 +1,4 @@
+{% from "components/icons.html" import icon %}
 <div id="comparativo-section" class="card" style="padding:20px;">
     <h2 style="font-size:15px; font-weight:700; color:var(--color-neutral); margin-bottom:2px;">
         Comparar Lojas
@@ -80,12 +81,12 @@
             <div class="compare-row">
                 <span class="dot dot-error"></span>
                 <span class="store-name">{{ a.nome_loja }}</span>
-                <span class="value">{{ a.avaliacao_media if a.avaliacao_media else "--" }}</span>
+                <span class="value">{{ a.avaliacao_media if a.avaliacao_media else "N/D" }}</span>
             </div>
             <div class="compare-row">
                 <span class="dot"></span>
                 <span class="store-name">{{ b.nome_loja }}</span>
-                <span class="value">{{ b.avaliacao_media if b.avaliacao_media else "--" }}</span>
+                <span class="value">{{ b.avaliacao_media if b.avaliacao_media else "N/D" }}</span>
             </div>
         </div>
     </div>
@@ -94,19 +95,67 @@
         <div class="card chart-card">
             <h2>Faturamento por Mês</h2>
             <p class="chart-caption">R$ de faturamento bruto, mês a mês</p>
-            <img src="data:image/png;base64,{{ grafico_faturamento_mensal }}" alt="Faturamento mensal" />
+            {{ grafico_faturamento_mensal | safe }}
         </div>
         <div class="card chart-card">
             <h2>Desvio de Faturamento</h2>
-            <p class="chart-caption">% vs. média histórica de cada loja -- últimas 8 semanas</p>
-            <img src="data:image/png;base64,{{ grafico_desvio_faturamento }}" alt="Desvio de faturamento" />
+            <p class="chart-caption">% vs. média histórica de cada loja · últimas 8 semanas</p>
+            {{ grafico_desvio_faturamento | safe }}
         </div>
     </div>
     <div class="grid" style="margin-top:16px;">
         <div class="card chart-card">
             <h2>Avaliações de Clientes</h2>
             <p class="chart-caption">Volume por semana; altura = quantidade, opacidade = nota média</p>
-            <img src="data:image/png;base64,{{ grafico_avaliacoes }}" alt="Avaliações comparadas" />
+            {{ grafico_avaliacoes | safe }}
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:16px;">
+        <div class="card">
+            <div class="insight-header insight-header-atencao">
+                {{ icon('alert') }}
+                <h2>Pontos de Atenção {{ a.nome_loja }}</h2>
+            </div>
+            <ul class="comment-list">
+                {% for c in comentarios_atencao_a %}
+                <li class="comment-item comment-item-atencao">
+                    {{ icon(c.icone) }}
+                    <div>
+                        <p class="comment-text">{{ c.comentario }}</p>
+                        <span class="muted small">
+                            {{ c.nota }}/5 · {{ c.canal }} · {{ c.data.strftime('%d/%m/%Y') }}
+                            {%- if c.ocorrencias > 1 %} · mencionado {{ c.ocorrencias }}x{% endif -%}
+                        </span>
+                    </div>
+                </li>
+                {% else %}
+                <li class="muted small">Nenhum comentário com ponto de atenção no período.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="insight-header insight-header-atencao">
+                {{ icon('alert') }}
+                <h2>Pontos de Atenção {{ b.nome_loja }}</h2>
+            </div>
+            <ul class="comment-list">
+                {% for c in comentarios_atencao_b %}
+                <li class="comment-item comment-item-atencao">
+                    {{ icon(c.icone) }}
+                    <div>
+                        <p class="comment-text">{{ c.comentario }}</p>
+                        <span class="muted small">
+                            {{ c.nota }}/5 · {{ c.canal }} · {{ c.data.strftime('%d/%m/%Y') }}
+                            {%- if c.ocorrencias > 1 %} · mencionado {{ c.ocorrencias }}x{% endif -%}
+                        </span>
+                    </div>
+                </li>
+                {% else %}
+                <li class="muted small">Nenhum comentário com ponto de atenção no período.</li>
+                {% endfor %}
+            </ul>
         </div>
     </div>
 </div>

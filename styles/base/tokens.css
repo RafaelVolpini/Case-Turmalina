@@ -1,0 +1,43 @@
+/* Tokens de cor, tipografia, raio e elevação -- fonte única de verdade pro
+   resto do CSS. Seguem docs/DESIGN.md (Turmaline Executive design system). */
+
+:root {
+    /* Cores -- tokens de docs/DESIGN.md */
+    --color-primary: #00413C;          /* primary -- verde-petróleo escuro: ações, navegação ativa */
+    --color-primary-container: #005A54; /* primary-container -- verde-água: acentos e destaques suaves */
+    --color-primary-light: #EFF4FF;    /* surface-container-low -- tint claro para hovers sutis */
+    --color-secondary: #725A42;        /* secondary -- marrom-café: distinção categórica */
+    --color-accent: #10B981;           /* nota/avaliação boa (>= 4) */
+    /* Usado em títulos, KPI-value, avatar/badge e botão principal -- igual ao
+       primary para o verde ficar visualmente dominante (era on-surface quase
+       preto antes, "sumindo" o verde da marca). Texto de corpo continua em
+       --text-main, que é o on-surface de verdade. */
+    --color-neutral: #00413C;
+
+    /* Vermelho é o ÚNICO sinal de urgência da tela: alerta crítico, loja em
+       prioridade negativa, variação negativa forte. Nunca usar como mais uma
+       cor decorativa do sistema. */
+    --color-error: #BA1A1A;            /* error */
+    --color-error-light: #FFDAD6;      /* error-container */
+    --color-error-dark: #93000A;       /* on-error-container -- texto sobre error-light */
+    --color-success: #0F7A5A;
+
+    --bg-page: #F8F9FF;                /* background/surface -- cinza claro, nunca branco puro */
+    --bg-surface: #FFFFFF;             /* surface-container-lowest -- cards, contraste de camada */
+    --border-color: #BEC9C6;           /* outline-variant */
+    --text-main: #121C2A;              /* on-surface */
+    --text-muted: #3F4947;             /* on-surface-variant */
+    --text-faint: #6F7977;             /* outline */
+
+    /* Shapes -- docs/DESIGN.md "Shapes": 4px em inputs/botões pequenos/badges
+       não-pill; 8px em cards/containers grandes. Pill só em badges de status
+       e indicadores de ranking (aplicado pontualmente, não via variável). */
+    --radius-sm: 0.125rem;   /* 2px */
+    --radius: 0.25rem;       /* 4px -- inputs, botões pequenos */
+    --radius-lg: 0.5rem;     /* 8px -- cards, containers grandes */
+    --radius-full: 9999px;   /* pill -- só badges de status / ranking */
+    --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+    --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+
+    --font-family: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

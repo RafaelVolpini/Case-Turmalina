@@ -1,0 +1,17 @@
+/* Alertas inline (banner de avaliação/loja em risco). */
+
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 13.5px;
+    margin-bottom: 12px;
+}
+
+.alert-warning {
+    background: #FEF6E7;
+    color: #92600A;
+    border: 1px solid rgba(217, 119, 6, 0.25);
+}

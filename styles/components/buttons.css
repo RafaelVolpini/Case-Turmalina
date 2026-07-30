@@ -1,0 +1,25 @@
+/* Botões (ghost padrão + variante sólida "neutral" = primary). */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: var(--radius); /* 4px -- botão pequeno, não é badge/ranking */
+    cursor: pointer;
+}
+
+.btn:hover { background: var(--bg-page); }
+
+.btn-neutral {
+    background: var(--color-neutral);
+    border-color: var(--color-neutral);
+    color: #fff;
+}
+
+.btn-neutral:hover { background: #002E2A; } /* --color-neutral (primary) escurecido */

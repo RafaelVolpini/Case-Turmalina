@@ -1,0 +1,22 @@
+/* Modal (dialog nativo do HTML, sem JS de terceiros). */
+
+dialog.modal {
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 0;
+    max-width: 640px;
+    width: 92vw;
+    box-shadow: var(--shadow-md);
+}
+
+dialog.modal::backdrop {
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.modal-box { padding: 22px 24px; }
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 24px 20px;
+}

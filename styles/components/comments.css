@@ -1,0 +1,51 @@
+/* Comentários (Pontos de Atenção / Pontos Fortes). */
+
+.comment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.comment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.comment-item .icon { margin-top: 2px; }
+
+.comment-item-atencao { border-left-color: var(--color-error); }
+.comment-item-atencao .icon { color: var(--color-error); }
+
+.comment-item-forte { border-left-color: var(--color-primary); }
+.comment-item-forte .icon { color: var(--color-primary); }
+
+.comment-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.comment-text {
+    margin: 0 0 3px;
+    font-size: 13.5px;
+    color: var(--text-main);
+}
+
+/* ---------- Pontos de Atenção / Pontos Fortes (cabeçalho das colunas) ---------- */
+
+.insight-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.insight-header h2 { font-size: 14px; font-weight: 700; }
+
+.insight-header-atencao { color: var(--color-error); }
+.insight-header-atencao .icon { color: var(--color-error); }
+
+.insight-header-forte { color: var(--color-primary); }
+.insight-header-forte .icon { color: var(--color-primary); }

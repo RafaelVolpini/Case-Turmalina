@@ -1,0 +1,14 @@
+<nav class="main-nav" id="main-nav" {% if oob %}hx-swap-oob="true"{% endif %}>
+    <a href="/" hx-get="/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+       class="nav-link {{ 'active' if active_tab == 'prioridades' else '' }}">
+        Prioridades<span class="nav-badge">{{ n_criticas or 2 }}</span>
+    </a>
+    <a href="/analise" hx-get="/analise" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+       class="nav-link {{ 'active' if active_tab == 'individual' else '' }}">
+        Análise Individual
+    </a>
+    <a href="/rede" hx-get="/rede" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+       class="nav-link {{ 'active' if active_tab == 'rede' else '' }}">
+        Rede
+    </a>
+</nav>

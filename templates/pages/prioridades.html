@@ -1,7 +1,7 @@
-<div class="stack">
+<div class="stack stack-wide">
     <div>
         <h1 style="font-size:22px; font-weight:800; color:var(--color-neutral);">Prioridades da Semana</h1>
-        <p class="page-subtitle">Ranking das 14 lojas por índice de prioridade -- combina margem, faturamento vs. meta e avaliações.</p>
+        <p class="page-subtitle">Leva em considerações as lojas que mais se desviam do seu faturamento médio ou que apresentam um volume grande de comentários negativos</p>
     </div>
 
     <div class="priority-banner">
@@ -10,7 +10,7 @@
             As {{ criticas|length }} lojas para intervir nesta semana
         </div>
         <p class="priority-banner-caption">
-            A estrutura atual sustenta ação efetiva em, no máximo, duas lojas por semana -- por isso o
+            A estrutura atual sustenta ação efetiva em, no máximo, duas lojas por semana por isso o
             ranking recorta as duas com maior índice de prioridade. Elas já vêm selecionadas no
             comparativo logo abaixo.
         </p>
@@ -36,12 +36,12 @@
                     <span class="kpi-value" style="font-size:19px;">
                         {% if loja.variacao_faturamento_vs_meta_pct is not none %}
                             {{ "+" if loja.variacao_faturamento_vs_meta_pct >= 0 else "" }}{{ loja.variacao_faturamento_vs_meta_pct }}%
-                        {% else %}--{% endif %}
+                        {% else %}N/D{% endif %}
                     </span>
                 </div>
                 <div>
                     <span class="kpi-label">Avaliação</span>
-                    <span class="kpi-value" style="font-size:19px;">{{ loja.avaliacao_media if loja.avaliacao_media else "--" }}</span>
+                    <span class="kpi-value" style="font-size:19px;">{{ loja.avaliacao_media if loja.avaliacao_media else "N/D" }}</span>
                 </div>
             </div>
             <ul class="priority-motivos">
@@ -55,3 +55,8 @@
 
     {% include "components/comparativo_section.html" %}
 </div>
+
+{% if is_htmx %}
+<aside class="sidebar" id="app-sidebar" hx-swap-oob="true" hidden></aside>
+{% with oob=true %}{% include "components/main_nav.html" %}{% endwith %}
+{% endif %}

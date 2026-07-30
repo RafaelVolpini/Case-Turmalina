@@ -1,8 +1,9 @@
+{% from "components/icons.html" import icon %}
 <div class="stack">
     <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
         <div>
             <h1 style="font-size:22px; font-weight:800; color:var(--color-neutral);">
-                Análise Individual -- {{ metrics.nome_loja }}
+                Análise Individual · {{ metrics.nome_loja }}
             </h1>
             <p class="page-subtitle">
                 {{ metrics.cidade_uf }} · {{ metrics.formato }} · {{ metrics.modelo }} ·
@@ -39,7 +40,7 @@
                 {{ metrics.tendencia_avaliacao }}
             </span>
             {% else %}
-            <span class="kpi-value muted">--</span>
+            <span class="kpi-value muted">N/D</span>
             <span class="kpi-delta">sem avaliações válidas no período</span>
             {% endif %}
         </div>
@@ -48,33 +49,77 @@
     <div class="grid grid-2">
         <div class="card chart-card">
             <h2>Desvio de Faturamento</h2>
-            <p class="chart-caption">% vs. média histórica da própria loja -- últimas 8 semanas</p>
-            <img src="data:image/png;base64,{{ grafico_desvio_faturamento }}" alt="Desvio de faturamento" />
+            <p class="chart-caption">% vs. média histórica da própria loja · últimas 8 semanas</p>
+            {{ grafico_desvio_faturamento | safe }}
         </div>
         <div class="card chart-card">
             <h2>Avaliações de Clientes</h2>
             <p class="chart-caption">Volume de avaliações por semana; cor da barra = faixa da nota média</p>
-            <img src="data:image/png;base64,{{ grafico_avaliacoes }}" alt="Avaliações de clientes" />
+            {{ grafico_avaliacoes | safe }}
         </div>
     </div>
 
-    {% if comentarios_criticos %}
-    <div class="card">
-        <h2 style="font-size:14px; font-weight:700; color:var(--color-neutral);">Comentários de Avaliações Baixas</h2>
-        <p class="chart-caption" style="margin-bottom:10px;">
-            Nota &lt; 3, últimos comentários com texto -- ajuda a entender o motivo por trás da nota
+    <div>
+        <h2 style="font-size:18px; font-weight:800; color:var(--color-neutral); margin-bottom:2px;">
+            Principais Comentários · {{ metrics.nome_loja }}
+        </h2>
+        <p class="page-subtitle" style="margin-bottom:4px;">
+            Classificados por palavra-chave no texto do comentário; sem nenhuma palavra reconhecida, a nota decide o lado.
         </p>
-        <ul class="comment-list">
-            {% for c in comentarios_criticos %}
-            <li class="comment-item">
-                <div class="comment-head">
-                    <span class="badge badge-error">{{ c.nota }}/5</span>
-                    <span class="muted small">{{ c.data.strftime('%d/%m/%Y') }} · {{ c.canal }}</span>
-                </div>
-                <p class="comment-text">&ldquo;{{ c.comentario }}&rdquo;</p>
-            </li>
-            {% endfor %}
-        </ul>
     </div>
-    {% endif %}
+
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="insight-header insight-header-atencao">
+                {{ icon('alert') }}
+                <h2>Pontos de Atenção</h2>
+            </div>
+            <ul class="comment-list">
+                {% for c in comentarios.pontos_atencao %}
+                <li class="comment-item comment-item-atencao">
+                    {{ icon(c.icone) }}
+                    <div>
+                        <p class="comment-text">{{ c.comentario }}</p>
+                        <span class="muted small">
+                            {{ c.nota }}/5 · {{ c.canal }} · {{ c.data.strftime('%d/%m/%Y') }}
+                            {%- if c.ocorrencias > 1 %} · mencionado {{ c.ocorrencias }}x{% endif -%}
+                        </span>
+                    </div>
+                </li>
+                {% else %}
+                <li class="muted small">Nenhum comentário com ponto de atenção no período.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="insight-header insight-header-forte">
+                {{ icon('check') }}
+                <h2>Pontos Fortes</h2>
+            </div>
+            <ul class="comment-list">
+                {% for c in comentarios.pontos_fortes %}
+                <li class="comment-item comment-item-forte">
+                    {{ icon(c.icone) }}
+                    <div>
+                        <p class="comment-text">{{ c.comentario }}</p>
+                        <span class="muted small">
+                            {{ c.nota }}/5 · {{ c.canal }} · {{ c.data.strftime('%d/%m/%Y') }}
+                            {%- if c.ocorrencias > 1 %} · mencionado {{ c.ocorrencias }}x{% endif -%}
+                        </span>
+                    </div>
+                </li>
+                {% else %}
+                <li class="muted small">Nenhum ponto forte identificado no período.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 </div>
+
+{% if is_htmx %}
+<aside class="sidebar" id="app-sidebar" hx-swap-oob="true">
+    {% include "components/sidebar_list.html" %}
+</aside>
+{% with oob=true %}{% include "components/main_nav.html" %}{% endwith %}
+{% endif %}

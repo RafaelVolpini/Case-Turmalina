@@ -1,0 +1,129 @@
+/* Cabeçalho fixo do topo: marca, navegação principal e ações do usuário. */
+
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 24px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    color: var(--color-neutral);
+}
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 700;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.main-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nav-link {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+}
+
+.nav-link:hover { color: var(--text-main); }
+
+.nav-link.active {
+    background: rgba(0, 65, 60, 0.08); /* tint do primary -- não usa --color-primary-light (é o tint azulado de surface) */
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.nav-link.disabled {
+    color: var(--text-faint);
+    cursor: not-allowed;
+}
+
+.nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--color-neutral);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.icon-btn:hover { background: var(--bg-page); color: var(--text-main); }
+
+.user-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border-color);
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-neutral);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.user-name { font-size: 12px; font-weight: 700; line-height: 1.2; }
+.user-role { font-size: 11px; color: var(--text-muted); }

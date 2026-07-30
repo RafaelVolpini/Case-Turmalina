@@ -1,0 +1,123 @@
+/* Sidebar (árvore Rede Turmalina Café > Lojas). */
+
+.sidebar {
+    width: 264px;
+    flex-shrink: 0;
+    margin: 20px 0 20px 16px;
+    padding: 14px 12px;
+    background: var(--bg-surface); /* fundo branco -- destaca do cinza da página, como um card */
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+}
+
+/* ---------- Árvore de navegação (Rede Turmalina Café > Lojas) ----------
+   <details>/<summary> nativo: expande/recolhe sem JS. */
+
+.tree-root {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: var(--radius);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 6px;
+}
+
+.tree-root:hover { background: var(--bg-page); }
+
+.tree-root.active {
+    background: rgba(0, 65, 60, 0.08);
+    color: var(--color-primary);
+}
+
+.tree-root-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.tree-branch summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.tree-branch summary::-webkit-details-marker { display: none; }
+.tree-branch summary::marker { content: ""; }
+
+.tree-branch summary::before {
+    content: "▸";
+    display: inline-block;
+    font-size: 10px;
+    color: var(--text-faint);
+    transition: transform 0.15s ease;
+}
+
+.tree-branch[open] summary::before { transform: rotate(90deg); }
+.tree-branch summary:hover { background: var(--bg-page); }
+
+.tree-branch .store-list {
+    margin: 4px 0 0 20px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border-color);
+}
+
+/* ---------- Lista de lojas ---------- */
+
+.store-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.store-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: var(--text-main);
+}
+
+.store-link:hover { background: var(--bg-page); }
+
+.store-link.active { background: var(--border-color); font-weight: 700; }
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--color-primary);
+}
+
+.dot.dot-error { background: var(--color-error); }
+
+/* Ícone de linha (ver components/icons.html) -- substitui as bolinhas de
+   status por um pictograma simples, mantendo o mesmo sinal de cor. */
+.icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.store-icon { color: var(--color-primary); }
+.store-icon-error { color: var(--color-error); }
+
+.store-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

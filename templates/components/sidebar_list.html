@@ -1,0 +1,31 @@
+{% from "components/icons.html" import icon %}
+<div class="tree">
+    <a href="/rede"
+       hx-get="/rede"
+       hx-target="#main-content"
+       hx-swap="innerHTML"
+       hx-push-url="true"
+       class="tree-root {{ 'active' if active_tab == 'rede' else '' }}">
+        <span class="tree-root-mark">T</span>
+        <span>Rede Turmalina Café</span>
+    </a>
+
+    <details class="tree-branch" {{ "open" if active_tab == "individual" else "" }}>
+        <summary>Lojas</summary>
+        <ul class="store-list">
+            {% for loja in lojas_sidebar %}
+            <li>
+                <a href="/lojas/{{ loja.id_loja }}"
+                   hx-get="/lojas/{{ loja.id_loja }}"
+                   hx-target="#main-content"
+                   hx-swap="innerHTML"
+                   hx-push-url="/lojas/{{ loja.id_loja }}"
+                   class="store-link {{ 'active' if loja.id_loja == active_loja else '' }}">
+                    {{ icon('store', 'store-icon-error' if loja.risco_critico else 'store-icon') }}
+                    <span class="store-name">{{ loja.nome_loja }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </details>
+</div>

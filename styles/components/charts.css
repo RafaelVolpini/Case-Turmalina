@@ -1,0 +1,10 @@
+/* Cards de gráfico (Plotly). */
+
+.chart-card h2 { font-size: 14px; font-weight: 700; color: var(--color-neutral); }
+.chart-card .chart-caption { font-size: 11.5px; color: var(--text-faint); margin: 2px 0 8px; }
+
+/* Plotly nasce com 700px fixos se ninguém disser o contrário -- estica pro
+   card com config.responsive + width:100% no container gerado pelo Plotly. */
+.chart-card .plotly-graph-div {
+    width: 100% !important;
+}

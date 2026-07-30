@@ -1,0 +1,59 @@
+{# Ícones em linha (stroke, sem preenchimento colorido) -- mesmo estilo dos
+   ícones do header (calendário/notificação) em base.html, pra não destoar
+   com um pacote de ícone "flat" cheio de gradiente. #}
+{% macro icon(name, css_class='') %}
+{% if name == 'store' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10l1.5-5.5A1 1 0 015.46 4h13.08a1 1 0 01.96.74L21 10M4 10v8a1 1 0 001 1h4v-5a1 1 0 011-1h4a1 1 0 011 1v5h4a1 1 0 001-1v-8M4 10h16" />
+</svg>
+{% elif name == 'clock' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="8.3" stroke-width="1.8" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 7.5V12l3 2" />
+</svg>
+{% elif name == 'thermometer' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 14.7V6a2 2 0 10-4 0v8.7a3.5 3.5 0 104 0z" />
+</svg>
+{% elif name == 'person' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="8" r="3.2" stroke-width="1.8" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5.5 20a6.5 6.5 0 0113 0" />
+</svg>
+{% elif name == 'sparkle' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 4l1.4 4.2L18 9.5l-4.6 1.3L12 15l-1.4-4.2L6 9.5l4.6-1.3L12 4z" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M18.5 15l.6 1.8 1.8.6-1.8.6-.6 1.8-.6-1.8-1.8-.6 1.8-.6z" />
+</svg>
+{% elif name == 'food' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 9h11v5a5.5 5.5 0 01-11 0V9z" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 10.5h1.5a2.5 2.5 0 010 5H16" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 6.5c.4-.7.4-1.3 0-2M11 6.5c.4-.7.4-1.3 0-2" />
+</svg>
+{% elif name == 'wifi' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.5 9.5a11 11 0 0115 0M7.3 12.7a7 7 0 019.4 0M10 16a3 3 0 014 0" />
+    <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+</svg>
+{% elif name == 'currency' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="8.3" stroke-width="1.8" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9.5 15.2c.5.9 1.4 1.3 2.5 1.3 1.6 0 2.7-.8 2.7-2s-1-1.7-2.7-2c-1.7-.3-2.7-.9-2.7-2s1.1-2 2.7-2c1.1 0 2 .4 2.5 1.3M12 7.5v9" />
+</svg>
+{% elif name == 'heart' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 19s-6.5-4.1-9-8.2C1.3 8 2.3 5 5.2 4.3 7 3.9 8.8 4.7 12 7.5c3.2-2.8 5-3.6 6.8-3.2 2.9.7 3.9 3.7 2.2 6.5-2.5 4.1-9 8.2-9 8.2z" />
+</svg>
+{% elif name == 'check' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="8.3" stroke-width="1.8" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8.5 12.3l2.3 2.3 4.7-5" />
+</svg>
+{% elif name == 'alert' %}
+<svg class="icon {{ css_class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 4.5l9 15.5H3L12 4.5z" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 10v4M12 17h.01" />
+</svg>
+{% endif %}
+{% endmacro %}

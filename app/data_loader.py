@@ -12,9 +12,18 @@ Premissas de tratamento (documentadas por serem decisões de projeto, não
   três formatos nessa ordem; o que não parsear em nenhum vira NaT.
 - `status` de loja com valor "1" é tratado como "ativa" (falha de digitação
   no cadastro manual, conforme nota de exportação).
-- `nota` de avaliação aceita separador decimal "," ou "."; valores fora de
-  [1, 5] após conversão são descartados (herança do campo livre da versão
-  antiga do app).
+- `id_loja` vem ora maiúsculo ("LJ01"), ora minúsculo ("lj01") no export de
+  avaliações -- normalizado pra maiúsculo em todos os CSVs, senão o filtro
+  por loja perde silenciosamente as linhas minúsculas (comparação de string
+  é case-sensitive; era um bug real, não só estético).
+- `canal` de avaliação também varia de caixa e nome ("Google" vs "google
+  maps" vs "app" vs "App") -- normalizado pra um rótulo canônico por canal
+  (essencialmente o mesmo canal exportado de formas diferentes).
+- `nota` de avaliação aparece em pelo menos 4 formatos: número puro ("4"),
+  decimal com vírgula ("4,0"), com sufixo ("4 estrelas") e por extenso
+  ("quatro") -- todos normalizados pra float antes de validar o intervalo
+  [1, 5] (fora disso é descartado, herança do campo livre da versão antiga
+  do app).
 - `tempo_espera_min` >= 120 é tratado como falha de leitura do totem e
   descartado da média (o enunciado cita explicitamente que o totem trava).
 """
@@ -70,6 +79,76 @@ def normalize_text(series: pd.Series) -> pd.Series:
     return series.astype(str).str.strip().str.lower()
 
 
+def normalize_id_loja(series: pd.Series) -> pd.Series:
+    """'lj01' e 'LJ01' são a mesma loja -- maiúsculo é o padrão nos outros CSVs."""
+    return series.astype(str).str.strip().str.upper()
+
+
+_NUMEROS_POR_EXTENSO = {
+    "um": 1, "uma": 1,
+    "dois": 2, "duas": 2,
+    "tres": 3, "três": 3,
+    "quatro": 4,
+    "cinco": 5,
+}
+
+
+def parse_nota(series: pd.Series) -> pd.Series:
+    """
+    Nota de avaliação convive em formatos bem diferentes no mesmo CSV: número
+    puro ('4'), decimal com vírgula ('4,0'), com sufixo ('4 estrelas') e por
+    extenso ('quatro'). Tenta o caminho numérico primeiro (cobre os 3
+    primeiros formatos de uma vez, já removendo o sufixo "estrela(s)") e cai
+    pro dicionário de números por extenso só no que sobrar.
+    """
+    texto = series.astype(str).str.strip().str.lower()
+    numerico = (
+        texto.str.replace("estrelas", "", regex=False)
+        .str.replace("estrela", "", regex=False)
+        .str.strip()
+        .str.replace(",", ".", regex=False)
+    )
+    numerico = pd.to_numeric(numerico, errors="coerce")
+    por_extenso = texto.map(_NUMEROS_POR_EXTENSO)
+    return numerico.fillna(por_extenso)
+
+
+_CANAIS_CANONICOS = {
+    "app": "App",
+    "google": "Google",
+    "google maps": "Google",
+    "totem na loja": "Totem na loja",
+}
+
+
+def normalize_canal(series: pd.Series) -> pd.Series:
+    """'Google' e 'google maps' são o mesmo canal (avaliação via Google);
+    normaliza caixa e apelidos pra um rótulo canônico por canal."""
+    texto = series.astype(str).str.strip().str.lower()
+    return texto.map(lambda v: _CANAIS_CANONICOS.get(v, v.title()))
+
+
+# 'formato' (turmalina_lojas.csv) tem variantes de caixa e de nome pro mesmo
+# tipo de loja ('rua' / 'RUA' / 'Loja de rua', 'Kiosk' / 'quiosque', 'Shopping'
+# / 'shopping center'). Antes o valor caía num fallback silencioso pra "Rua"
+# quando não batia com quiosque/shopping -- funcionava só por coincidência
+# (toda variante de rua realmente contém "rua"); trocado por checagem
+# explícita de palavra-chave, igual ao canal, pra não depender de sorte se
+# aparecer um valor novo.
+_PALAVRAS_FORMATO = {
+    "quiosque": "Quiosque", "quiosk": "Quiosque", "kiosk": "Quiosque",
+    "shopping": "Shopping",
+    "rua": "Rua",
+}
+
+
+def _classificar_formato(texto: str) -> str:
+    for palavra, formato in _PALAVRAS_FORMATO.items():
+        if palavra in texto:
+            return formato
+    return texto.title()  # formato não reconhecido -- mantém visível em vez de mascarar como "Rua"
+
+
 @lru_cache(maxsize=1)
 def load_lojas() -> pd.DataFrame:
     df = pd.read_csv(DATA_DIR / "turmalina_lojas.csv")
@@ -79,11 +158,7 @@ def load_lojas() -> pd.DataFrame:
     df["meta_faturamento_mensal"] = parse_brl_currency(df["meta_faturamento_mensal"])
 
     formato_norm = normalize_text(df["formato"])
-    df["formato_norm"] = formato_norm.map(
-        lambda v: "Quiosque" if "quiosk" in v or "quiosque" in v or "kiosk" in v
-        else "Shopping" if "shopping" in v
-        else "Rua"
-    )
+    df["formato_norm"] = formato_norm.map(_classificar_formato)
 
     modelo_norm = normalize_text(df["modelo"])
     df["modelo_norm"] = modelo_norm.map(lambda v: "Franquia" if "franq" in v else "Própria")
@@ -92,6 +167,7 @@ def load_lojas() -> pd.DataFrame:
     df["ativa"] = status_norm.isin(["ativa", "1", "true", "ativo"])
 
     df["nome_loja"] = df["nome_loja"].astype(str).str.strip()
+    df["id_loja"] = normalize_id_loja(df["id_loja"])
     return df
 
 
@@ -99,6 +175,7 @@ def load_lojas() -> pd.DataFrame:
 def load_vendas() -> pd.DataFrame:
     df = pd.read_csv(DATA_DIR / "turmalina_vendas_diarias.csv")
     df["data"] = parse_date_flex(df["data"])
+    df["id_loja"] = normalize_id_loja(df["id_loja"])
     numeric_cols = [
         "faturamento_bruto", "descontos", "num_tickets",
         "horas_trabalhadas_equipe", "custo_insumos", "valor_desperdicio",
@@ -116,7 +193,9 @@ def load_vendas() -> pd.DataFrame:
 def load_avaliacoes() -> pd.DataFrame:
     df = pd.read_csv(DATA_DIR / "turmalina_avaliacoes.csv")
     df["data"] = parse_date_flex(df["data"])
-    df["nota"] = parse_decimal_comma(df["nota"])
+    df["id_loja"] = normalize_id_loja(df["id_loja"])
+    df["canal"] = normalize_canal(df["canal"])
+    df["nota"] = parse_nota(df["nota"])
     df.loc[~df["nota"].between(1, 5), "nota"] = pd.NA
     df["tempo_espera_min"] = pd.to_numeric(df["tempo_espera_min"], errors="coerce")
     df.loc[df["tempo_espera_min"] >= 120, "tempo_espera_min"] = pd.NA
@@ -200,33 +279,115 @@ def monthly_faturamento(id_loja: str) -> pd.DataFrame:
     return mensal.sort_values("mes").reset_index(drop=True)
 
 
-NOTA_CRITICA = 3.0  # abaixo disso, o comentário entra na lista de "avaliações críticas"
+# Dicionário de palavras-chave -> ícone. Cada comentário é varrido em busca
+# dessas palavras pra virar "ponto forte" ou "ponto de atenção"; a ordem das
+# negativas importa (checadas primeiro) pra pegar negações simples tipo "não
+# gostei" antes que "gostei" bata como positivo.
+_PALAVRAS_ATENCAO = {
+    "não gostei": "alert", "nao gostei": "alert",
+    "não recomendo": "alert", "nao recomendo": "alert",
+    "lotado": "person", "lotada": "person", "fila": "person",
+    "demorou": "clock", "demora": "clock", "demorado": "clock", "lento": "clock", "lenta": "clock",
+    "ruim": "alert", "péssimo": "alert", "pessimo": "alert", "péssima": "alert", "pessima": "alert",
+    "frio": "thermometer", "fria": "thermometer", "morno": "thermometer", "morna": "thermometer",
+    "sujo": "sparkle", "suja": "sparkle",
+    "caro": "currency", "cara": "currency",
+    "grosso": "person", "grossa": "person", "mal educado": "person", "mal educada": "person",
+    # Falha de totem/sistema -- sinal operacional, não só "demora" de atendimento
+    # humano; tempo_espera_min sentinela (>=120, ver load_avaliacoes) já é
+    # descartado da média, mas se o comentário falar da falha em si, é
+    # importante ela aparecer aqui, não só desaparecer como dado faltante.
+    "totem": "alert", "travou": "alert", "travando": "alert", "trava": "alert",
+    "quebrado": "alert", "quebrada": "alert", "fora do ar": "alert",
+    "não funcionava": "alert", "nao funcionava": "alert", "não funcionou": "alert", "nao funcionou": "alert",
+    "timeout": "alert",
+}
+
+_PALAVRAS_FORTE = {
+    "gostei": "heart", "adorei": "heart", "recomendo": "heart",
+    "ótimo": "check", "otimo": "check", "ótima": "check", "otima": "check",
+    "excelente": "check", "excelentes": "check",
+    "bom": "check", "boa": "check", "boas": "check", "bons": "check",
+    "rápido": "clock", "rapido": "clock", "rápida": "clock", "rapida": "clock",
+    "atencioso": "person", "atenciosa": "person", "educado": "person", "educada": "person",
+    "limpo": "sparkle", "limpa": "sparkle", "aconchegante": "sparkle", "agradável": "sparkle", "agradavel": "sparkle",
+    "fresco": "food", "fresquinho": "food", "quente": "food", "saboroso": "food", "saborosa": "food",
+    "wi-fi": "wifi", "wifi": "wifi",
+    "justo": "currency",
+}
+
+_ICONE_FALLBACK = {"forte": "check", "atencao": "alert"}
 
 
-def comentarios_criticos(id_loja: str, limit: int = 5) -> list[dict]:
+def _classificar_comentario(texto: str, nota: float) -> tuple[str, str]:
     """
-    Comentários de avaliações com nota baixa (< 3) e texto preenchido -- ajuda a
-    entender O PORQUÊ da nota, não só o número. Muitas avaliações vêm sem
-    comentário (campo de texto livre, nem sempre preenchido); essas são
-    descartadas aqui por não agregarem contexto.
+    Categoriza um comentário em 'atencao' ou 'forte' buscando palavras-chave
+    de sentimento (dicionário -- sem NLP). Comentário sem nenhuma palavra
+    reconhecida cai no fallback pela nota (>= 4 vira ponto forte, o resto
+    ponto de atenção), então nenhum comentário com texto fica de fora.
+    """
+    texto_norm = texto.lower()
+    for palavra, icone in _PALAVRAS_ATENCAO.items():
+        if palavra in texto_norm:
+            return "atencao", icone
+    for palavra, icone in _PALAVRAS_FORTE.items():
+        if palavra in texto_norm:
+            return "forte", icone
+
+    categoria = "forte" if pd.notna(nota) and nota >= 4 else "atencao"
+    return categoria, _ICONE_FALLBACK[categoria]
+
+
+def comentarios_destaque(id_loja: str, limit: int = 5) -> dict:
+    """
+    Comentários com texto preenchido, sempre exibidos (não só os críticos),
+    separados em 'pontos_fortes' e 'pontos_atencao' via busca de palavras-chave
+    (ver _classificar_comentario). Muitas avaliações vêm sem comentário (campo
+    de texto livre, nem sempre preenchido); essas são descartadas por não
+    agregarem contexto -- não há o que classificar num campo vazio.
+
+    O texto livre se repete muito entre clientes diferentes (poucas frases
+    fixas, muita gente escrevendo a mesma coisa) -- listar a mesma frase 5x
+    não ajuda em nada, então agrupa por texto idêntico (case-insensitive) e
+    mostra quantas vezes cada uma apareceu; o ranking prioriza o que mais se
+    repete, não só o mais recente.
     """
     aval = load_avaliacoes()
     aval_loja = aval[
         (aval["id_loja"] == id_loja)
-        & (aval["nota"] < NOTA_CRITICA)
         & aval["comentario"].notna()
         & (aval["comentario"].astype(str).str.strip() != "")
     ].sort_values("data", ascending=False)
 
-    return [
-        {
-            "data": row["data"],
-            "nota": row["nota"],
-            "canal": row["canal"],
-            "comentario": row["comentario"],
-        }
-        for _, row in aval_loja.head(limit).iterrows()
-    ]
+    agrupado: dict[tuple[str, str], dict] = {}
+    for _, row in aval_loja.iterrows():
+        comentario = str(row["comentario"]).strip()
+        categoria, icone = _classificar_comentario(comentario, row["nota"])
+        chave = (categoria, comentario.lower())
+        if chave not in agrupado:
+            agrupado[chave] = {
+                "data": row["data"],
+                "nota": row["nota"],
+                "canal": row["canal"],
+                "comentario": comentario,
+                "icone": icone,
+                "categoria": categoria,
+                "ocorrencias": 0,
+            }
+        agrupado[chave]["ocorrencias"] += 1
+
+    def _chave_ordenacao(item: dict):
+        # mais repetido primeiro; empate desfeito pelo mais recente (NaT vai por último)
+        data_valor = item["data"].value if pd.notna(item["data"]) else -1
+        return (-item["ocorrencias"], -data_valor)
+
+    fortes = sorted((v for v in agrupado.values() if v["categoria"] == "forte"), key=_chave_ordenacao)
+    atencao = sorted((v for v in agrupado.values() if v["categoria"] == "atencao"), key=_chave_ordenacao)
+
+    return {
+        "pontos_fortes": fortes[:limit],
+        "pontos_atencao": atencao[:limit],
+    }
 
 
 def _tendencia_avaliacao(semanal: pd.DataFrame) -> str:
@@ -389,3 +550,150 @@ def list_prioridades() -> dict:
         "criticas": ranking[:N_LOJAS_INTERVENCAO],
         "outras": ranking[N_LOJAS_INTERVENCAO:],
     }
+
+
+PERIODOS_REDE = {
+    "6m": "Últimos 6 meses",
+    "12m": "Últimos 12 meses",
+    "fundacao": "Desde a fundação",
+}
+
+
+def _intervalo_periodo(periodo: str) -> tuple[pd.Timestamp, pd.Timestamp]:
+    vendas = load_vendas()
+    fim = vendas["data"].max()
+    if periodo == "6m":
+        inicio = fim - pd.DateOffset(months=6)
+    elif periodo == "fundacao":
+        inicio = vendas["data"].min()
+    else:  # "12m" -- padrão
+        inicio = fim - pd.DateOffset(months=12)
+    return inicio, fim
+
+
+def _inicio_semestre(data: pd.Timestamp) -> pd.Timestamp:
+    """1º de janeiro ou 1º de julho do semestre calendário que contém `data`."""
+    mes_inicio = 1 if data.month <= 6 else 7
+    return pd.Timestamp(year=data.year, month=mes_inicio, day=1)
+
+
+def rede_kpis(periodo: str = "12m") -> dict:
+    """
+    KPIs de rede recalculados ao vivo a partir de turmalina_vendas_diarias.csv
+    pro período selecionado (tela 'Rede') -- nada travado em relatório estático.
+
+    Crescimento compara semestre calendário atual vs. anterior (não um corte
+    "metade do período" por tempo decorrido -- isso deslocava a fronteira pra
+    29/12 em vez de 01/01 e distorcia o resultado por causa dos dias de maior
+    faturamento do fim de ano ficarem do lado errado do corte).
+
+    Margem é sobre a receita líquida (faturamento menos descontos) e desconta
+    também o desperdício, não só o custo de insumos -- confere com o número
+    que já vai pro conselho na planilha consolidada.
+    """
+    inicio, fim = _intervalo_periodo(periodo)
+    vendas = load_vendas()
+    janela = vendas[(vendas["data"] >= inicio) & (vendas["data"] <= fim)]
+
+    faturamento_total = janela["faturamento_bruto"].sum()
+    descontos_total = janela["descontos"].sum()
+    custo_total = janela["custo_insumos"].sum()
+    desperdicio_total = janela["valor_desperdicio"].sum()
+    tickets_total = janela["num_tickets"].sum()
+    faturamento_liquido = faturamento_total - descontos_total
+
+    meio = _inicio_semestre(fim)
+    primeira_metade = janela[janela["data"] < meio]["faturamento_bruto"].sum()
+    segunda_metade = janela[janela["data"] >= meio]["faturamento_bruto"].sum()
+    crescimento_pct = (
+        (segunda_metade - primeira_metade) / primeira_metade * 100 if primeira_metade else None
+    )
+    margem_pct = (
+        (faturamento_liquido - custo_total - desperdicio_total) / faturamento_liquido * 100
+        if faturamento_liquido else None
+    )
+    ticket_medio = faturamento_total / tickets_total if tickets_total else None
+
+    return {
+        "periodo": periodo,
+        "periodo_label": PERIODOS_REDE[periodo],
+        "inicio": inicio,
+        "fim": fim,
+        "faturamento_total": round(faturamento_total, 2),
+        "crescimento_pct": round(crescimento_pct, 1) if crescimento_pct is not None else None,
+        "margem_pct": round(margem_pct, 1) if margem_pct is not None else None,
+        "ticket_medio": round(ticket_medio, 2) if ticket_medio is not None else None,
+    }
+
+
+def retrato_atual(mensal_expansao: pd.DataFrame) -> dict:
+    """
+    Quantas lojas estão, AGORA, indo bem ou mal -- reaproveita o mês mais
+    recente de `tendencia_expansao` (mês vs. mês anterior), a mesma conta e
+    o mesmo motivo documentado lá: comparar contra a média histórica inteira
+    dava sempre ~14 de 14 positivas, porque a rede inteira está crescendo e
+    o histórico completo inclui os meses mais fracos do início -- não media
+    nada sobre o momento atual da loja. Recebe o DataFrame já calculado (em
+    vez de recalcular) pra garantir a mesma fonte pro card e pro gráfico de
+    tendência, e pra herdar o filtro por período selecionado na tela.
+    """
+    if mensal_expansao.empty:
+        return {"acima": 0, "abaixo": 0, "total": 0, "pct_acima": 0, "pct_abaixo": 0}
+
+    ultimo_mes = mensal_expansao.iloc[-1]
+    acima, abaixo = int(ultimo_mes["positivas"]), int(ultimo_mes["negativas"])
+    total = acima + abaixo
+    return {
+        "acima": acima,
+        "abaixo": abaixo,
+        "total": total,
+        "pct_acima": round(acima / total * 100, 1) if total else 0,
+        "pct_abaixo": round(abaixo / total * 100, 1) if total else 0,
+    }
+
+
+def tendencia_expansao(periodo: str = "12m") -> pd.DataFrame:
+    """
+    Por mês (dentro do período selecionado), quantas lojas faturaram mais que
+    no mês IMEDIATAMENTE ANTERIOR (positivas) vs. menos (negativas) --
+    NUNCA contra uma média histórica completa: comparar contra a média inteira
+    enviesava o sinal (loja nova, com poucos meses de histórico, tinha sua
+    própria média dominada pelos meses recentes e o desvio ficava artificialmente
+    pequeno -- por isso aqui é sempre mês vs. mês anterior, sinal local, não
+    a mesma conta de weekly_desvio_faturamento).
+
+    Loja que abriu durante o período não entra em positivas/negativas no
+    primeiro mês em que aparece (não há mês anterior pra comparar), mas conta
+    em 'lojas_ativas' -- por isso esse total pode ser menor que 14 nos meses
+    iniciais do período.
+    """
+    inicio, fim = _intervalo_periodo(periodo)
+    vendas = load_vendas()
+
+    # Sem filtro de início: precisa dos meses ANTERIORES ao período pra já ter
+    # "mês anterior" pra comparar logo no primeiro mês do período selecionado.
+    vendas_ate_fim = vendas[vendas["data"] <= fim].copy()
+    vendas_ate_fim["mes"] = vendas_ate_fim["data"].dt.to_period("M").dt.to_timestamp()
+
+    mensal_por_loja = (
+        vendas_ate_fim.groupby(["id_loja", "mes"])["faturamento_bruto"]
+        .sum()
+        .reset_index()
+        .sort_values(["id_loja", "mes"])
+    )
+    mensal_por_loja["mes_anterior"] = mensal_por_loja.groupby("id_loja")["faturamento_bruto"].shift(1)
+
+    inicio_mes = inicio.to_period("M").to_timestamp()
+    periodo_df = mensal_por_loja[mensal_por_loja["mes"] >= inicio_mes]
+
+    linhas = []
+    for mes, grupo in periodo_df.groupby("mes"):
+        comparaveis = grupo.dropna(subset=["mes_anterior"])
+        linhas.append({
+            "mes": mes,
+            "positivas": int((comparaveis["faturamento_bruto"] > comparaveis["mes_anterior"]).sum()),
+            "negativas": int((comparaveis["faturamento_bruto"] < comparaveis["mes_anterior"]).sum()),
+            "lojas_ativas": len(grupo),
+        })
+
+    return pd.DataFrame(linhas).sort_values("mes").reset_index(drop=True)

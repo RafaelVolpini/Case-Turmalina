@@ -1,0 +1,18 @@
+/* Utilitários genéricos usados em várias páginas/componentes. */
+
+.muted { color: var(--text-muted); }
+.small { font-size: 12.5px; }
+.page-subtitle { color: var(--text-muted); font-size: 12.5px; margin-top: 2px; }
+.back-link { font-size: 12.5px; color: var(--text-muted); }
+.back-link:hover { color: var(--text-main); }
+
+.loading-spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

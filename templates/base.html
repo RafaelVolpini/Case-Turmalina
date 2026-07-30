@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Turmalina Café -- Dashboard de Análise de Lojas</title>
+    <title>Turmalina Café · Dashboard de Análise de Lojas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="/styles/main.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.10/htmx.min.js"></script>
+    <!-- Carregado uma única vez; cada gráfico (app/charts.py) reaproveita este
+         bundle via fig.to_html(include_plotlyjs=False, ...) -- sem npm/npx. -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 </head>
 <body>
 
@@ -16,16 +22,7 @@
             <span>Rede Turmalina Café</span>
         </a>
 
-        <nav class="main-nav">
-            <a href="/" hx-get="/" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
-               class="nav-link {{ 'active' if active_tab == 'prioridades' else '' }}">
-                Prioridades<span class="nav-badge">{{ n_criticas or 2 }}</span>
-            </a>
-            <a href="/analise" hx-get="/analise" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
-               class="nav-link {{ 'active' if active_tab == 'individual' else '' }}">
-                Análise Individual
-            </a>
-        </nav>
+        {% include "components/main_nav.html" %}
     </div>
 
     <div class="header-right">
@@ -57,23 +54,8 @@
 </header>
 
 <div class="layout">
-    <aside class="sidebar">
-        <div class="sidebar-title">NOSSAS LOJAS</div>
-        <ul class="store-list">
-            {% for loja in lojas_sidebar %}
-            <li>
-                <a href="/lojas/{{ loja.id_loja }}"
-                   hx-get="/lojas/{{ loja.id_loja }}"
-                   hx-target="#main-content"
-                   hx-swap="innerHTML"
-                   hx-push-url="/lojas/{{ loja.id_loja }}"
-                   class="store-link {{ 'active' if loja.id_loja == active_loja else '' }}">
-                    <span class="dot {{ 'dot-error' if loja.risco_critico else '' }}"></span>
-                    <span class="store-name">{{ loja.nome_loja }}</span>
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
+    <aside class="sidebar" id="app-sidebar" {{ "hidden" if active_tab in ("prioridades", "rede") else "" }}>
+        {% include "components/sidebar_list.html" %}
     </aside>
 
     <main id="main-content" class="main-content">

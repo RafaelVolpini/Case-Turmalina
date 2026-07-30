@@ -1,0 +1,5 @@
+/* Tabela (relatório do modal "Generate Report"). */
+
+table.table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.table th, table.table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border-color); }
+table.table th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); }
