@@ -65,10 +65,10 @@ def normalize_text(series: pd.Series) -> pd.Series:
 
 
 def normalize_id_loja(series: pd.Series) -> pd.Series:
-    """Normaliza id_loja para maiúsculo, padrão usado nos outros CSVs.
+    """Normaliza id_loja para maiúsculo, sem espaços ou hífen, padrão usado nos outros CSVs.
     Entrada: series (pd.Series) de strings de id_loja.
-    Retorno: pd.Series de strings em maiúsculo."""
-    return series.astype(str).str.strip().str.upper()
+    Retorno: pd.Series de strings em maiúsculo (ex.: "lj-13" e "LJ-13" viram "LJ13", igual a "LJ13")."""
+    return series.astype(str).str.strip().str.upper().str.replace("-", "", regex=False)
 
 
 _NUMEROS_POR_EXTENSO = {
