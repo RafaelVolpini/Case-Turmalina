@@ -53,6 +53,34 @@
                 <li>{{ motivo }}</li>
                 {% endfor %}
             </ul>
+
+            {% if loja.motivo_dimensao == "margem" %}
+            <p class="priority-detail">
+                {% if loja.mix_pior_categoria %}
+                Categoria que mais puxa a margem: <strong>{{ loja.mix_pior_categoria.categoria }}</strong>
+                ({{ loja.mix_pior_categoria.margem_pct }}% de margem em {{ loja.mix_pior_categoria.competencia }})
+                {% else %}
+                Sem dado de mix de produtos disponível
+                {% endif %}
+            </p>
+            {% endif %}
+
+            <div class="priority-context">
+                <span class="priority-context-label">Informativo · não entra no índice</span>
+                <div class="priority-context-row">
+                    <span class="kpi-label">Eficiência de equipe</span>
+                    {% if loja.eficiencia_equipe %}
+                    <span class="priority-context-value">
+                        R$ {{ "{:,.0f}".format(loja.eficiencia_equipe.eficiencia_30d).replace(",", ".") }}/h
+                        <span class="{{ 'text-error' if loja.eficiencia_equipe.variacao_pct is not none and loja.eficiencia_equipe.variacao_pct < 0 else 'text-success' }}">
+                            ({{ "+" if loja.eficiencia_equipe.variacao_pct is not none and loja.eficiencia_equipe.variacao_pct >= 0 else "" }}{{ loja.eficiencia_equipe.variacao_pct if loja.eficiencia_equipe.variacao_pct is not none else "N/D" }}{{ "%" if loja.eficiencia_equipe.variacao_pct is not none else "" }} vs. média histórica)
+                        </span>
+                    </span>
+                    {% else %}
+                    <span class="priority-context-value muted">Sem dado de horas trabalhadas disponível</span>
+                    {% endif %}
+                </div>
+            </div>
         </a>
         {% endfor %}
     </div>

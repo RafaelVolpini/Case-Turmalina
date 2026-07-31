@@ -74,3 +74,38 @@
 }
 
 .priority-motivos li { margin-bottom: 2px; }
+
+.priority-detail {
+    margin: 0 0 10px;
+    font-size: 12.5px;
+    color: var(--color-neutral);
+}
+
+/* bloco de contexto auxiliar (eficiência de equipe) -- visualmente mais discreto que os 3 KPIs principais */
+.priority-context {
+    border-top: 1px dashed var(--border-color);
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.priority-context-label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.priority-context-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.priority-context-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}

@@ -46,6 +46,13 @@
     flex-shrink: 0;
 }
 
+.tree-root-mark-icon {
+    width: 13px;
+    height: 13px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
 .tree-branch summary {
     cursor: pointer;
     list-style: none;

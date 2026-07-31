@@ -33,6 +33,12 @@
     font-weight: 700;
 }
 
+.brand-mark-icon {
+    width: 18px;
+    height: 18px;
+    color: #fff;
+}
+
 .header-left {
     display: flex;
     align-items: center;

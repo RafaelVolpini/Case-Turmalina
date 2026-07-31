@@ -194,11 +194,74 @@ def load_itens() -> pd.DataFrame:
     Entrada: nenhuma (lê DATA_DIR/turmalina_itens.csv).
     Retorno: pd.DataFrame com categoria, preco_medio, custo_unitario e quantidade_vendida tipados."""
     df = pd.read_csv(DATA_DIR / "turmalina_itens.csv")
+    df["id_loja"] = normalize_id_loja(df["id_loja"])  # csv tem variante minúscula (lj05), como nos outros arquivos
     df["categoria"] = df["categoria"].astype(str).str.strip().str.title()
     df["preco_medio"] = parse_brl_currency(df["preco_medio"])
     df["custo_unitario"] = pd.to_numeric(df["custo_unitario"], errors="coerce")
     df["quantidade_vendida"] = pd.to_numeric(df["quantidade_vendida"], errors="coerce")
     return df
+
+
+def pior_categoria_margem(id_loja: str) -> dict | None:
+    """Acha a categoria com pior margem de produto de uma loja no mês mais recente disponível em turmalina_itens.csv.
+    Margem de produto agregada por categoria = (receita - custo) / receita, com receita/custo ponderados pela
+    quantidade vendida de cada produto (não a média simples das margens unitárias).
+    Entrada: id_loja (str).
+    Retorno: dict com categoria, margem_pct e competencia; None se a loja não tem registro em turmalina_itens.csv."""
+    itens_loja = load_itens()[load_itens()["id_loja"] == id_loja]
+    if itens_loja.empty:
+        return None
+
+    competencia_recente = itens_loja["competencia"].max()
+    itens_mes = itens_loja[itens_loja["competencia"] == competencia_recente].copy()
+    itens_mes["receita"] = itens_mes["preco_medio"] * itens_mes["quantidade_vendida"]
+    itens_mes["custo"] = itens_mes["custo_unitario"] * itens_mes["quantidade_vendida"]
+
+    por_categoria = itens_mes.groupby("categoria").agg(
+        receita=("receita", "sum"), custo=("custo", "sum"),
+    ).reset_index()
+    por_categoria = por_categoria[por_categoria["receita"] > 0]  # receita <= 0 não dá margem definida
+    if por_categoria.empty:
+        return None
+
+    por_categoria["margem_pct"] = (por_categoria["receita"] - por_categoria["custo"]) / por_categoria["receita"] * 100
+    pior = por_categoria.sort_values("margem_pct").iloc[0]
+    return {
+        "categoria": pior["categoria"],
+        "margem_pct": round(pior["margem_pct"], 1),
+        "competencia": competencia_recente,
+    }
+
+
+def eficiencia_equipe(id_loja: str) -> dict | None:
+    """Calcula faturamento por hora trabalhada da equipe nos últimos 30 dias vs. média histórica da loja.
+    Contexto auxiliar -- não gera percentil nem entra no Índice de Prioridade.
+    Entrada: id_loja (str).
+    Retorno: dict com eficiencia_30d, eficiencia_historica e variacao_pct (R$/hora); None sem horas registradas."""
+    vendas_loja = load_vendas()[load_vendas()["id_loja"] == id_loja].sort_values("data")
+    if vendas_loja.empty:
+        return None
+
+    fim = vendas_loja["data"].max()
+    inicio = fim - pd.Timedelta(days=29)
+    janela = vendas_loja[(vendas_loja["data"] >= inicio) & (vendas_loja["data"] <= fim)]
+
+    horas_30d = janela["horas_trabalhadas_equipe"].sum()
+    horas_historico = vendas_loja["horas_trabalhadas_equipe"].sum()
+    if not horas_30d or pd.isna(horas_30d) or not horas_historico or pd.isna(horas_historico):
+        return None
+
+    eficiencia_30d = janela["faturamento_bruto"].sum() / horas_30d
+    eficiencia_historica = vendas_loja["faturamento_bruto"].sum() / horas_historico
+    variacao_pct = (
+        (eficiencia_30d - eficiencia_historica) / eficiencia_historica * 100
+        if eficiencia_historica else None
+    )
+    return {
+        "eficiencia_30d": round(eficiencia_30d, 2),
+        "eficiencia_historica": round(eficiencia_historica, 2),
+        "variacao_pct": round(variacao_pct, 1) if variacao_pct is not None else None,
+    }
 
 
 MARGEM_QUEDA_CRITICA_PP = 3.0  # queda >= 3 p.p. entre janelas de 30 dias, ou margem negativa
@@ -625,6 +688,13 @@ def list_stores_summary() -> list[dict]:
     return sorted(resumo, key=lambda x: x["margem_30d"] if x["margem_30d"] is not None else float("-inf"))
 
 
+# Limiar de referência pra tempo de espera de balcão em cafeteria: não há benchmark oficial do
+# projeto (igual à nota, ver NOTA_QUEDA_CRITICA_PONTOS), então 8 minutos foi escolhido como o ponto
+# em que a espera passa de "aceitável" pra "perceptível como demora" numa operação de balcão/quiosque,
+# valor documentável mas é premissa nova, não um número já validado em outra parte do sistema.
+TEMPO_ESPERA_LIMIAR_MIN = 8.0
+
+
 def store_metrics(id_loja: str) -> dict:
     """Calcula as métricas de uma loja: faturamento, margem, avaliação e variações vs. histórico.
     Entrada: id_loja (str).
@@ -661,6 +731,9 @@ def store_metrics(id_loja: str) -> dict:
     )
     tempo_espera_medio = aval_janela["tempo_espera_min"].mean()
     tendencia_avaliacao = _tendencia_avaliacao(weekly_avaliacoes(id_loja))
+    tempo_espera_acima_limiar = (
+        tempo_espera_medio > TEMPO_ESPERA_LIMIAR_MIN if pd.notna(tempo_espera_medio) else None
+    )
 
     return {
         "id_loja": id_loja,
@@ -685,6 +758,8 @@ def store_metrics(id_loja: str) -> dict:
         "variacao_nota": variacao_nota,  # não arredondado -- usado internamente por list_prioridades()
         "avaliacao_count": int(aval_janela["nota"].notna().sum()),
         "tempo_espera_medio": round(tempo_espera_medio, 1) if pd.notna(tempo_espera_medio) else None,
+        "tempo_espera_limiar_min": TEMPO_ESPERA_LIMIAR_MIN,
+        "tempo_espera_acima_limiar": tempo_espera_acima_limiar,
         "tendencia_avaliacao": tendencia_avaliacao,
         "periodo_fim": fim,
         "periodo_inicio": fim - pd.Timedelta(days=29),
@@ -766,8 +841,18 @@ def list_prioridades() -> dict:
         })
 
     ranking.sort(key=lambda r: -r["indice_prioridade"])
+    criticas = ranking[:N_LOJAS_INTERVENCAO]
+
+    # dados de contexto abaixo são só pros cards críticos exibidos na tela -- não entram no ranking,
+    # no índice nem em nenhum percentil (ver pior_categoria_margem e eficiencia_equipe).
+    for c in criticas:
+        motivo_margem = c["percentil_margem"] >= c["percentil_nota"]
+        c["motivo_dimensao"] = "margem" if motivo_margem else "nota"
+        c["mix_pior_categoria"] = pior_categoria_margem(c["id_loja"]) if motivo_margem else None
+        c["eficiencia_equipe"] = eficiencia_equipe(c["id_loja"])
+
     return {
-        "criticas": ranking[:N_LOJAS_INTERVENCAO],
+        "criticas": criticas,
         "outras": ranking[N_LOJAS_INTERVENCAO:],
     }
 

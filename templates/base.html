@@ -17,8 +17,9 @@
 
 <header class="app-header">
     <div class="header-left">
+        {% from "components/icons.html" import icon %}
         <a href="/" class="brand">
-            <span class="brand-mark">T</span>
+            <span class="brand-mark">{{ icon('coffee', 'brand-mark-icon') }}</span>
             <span>Rede Turmalina Café</span>
         </a>
 

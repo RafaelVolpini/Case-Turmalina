@@ -138,7 +138,14 @@
                     </div>
                 </li>
                 {% else %}
-                <li class="muted small">Nenhum comentário com ponto de atenção no período.</li>
+                    {% if a.tempo_espera_medio is not none %}
+                    <li class="muted small">
+                        Sem comentário de atenção no período · tempo médio de espera: {{ a.tempo_espera_medio }} min
+                        ({{ "acima" if a.tempo_espera_acima_limiar else "dentro" }} do limiar de referência de {{ a.tempo_espera_limiar_min | int }} min)
+                    </li>
+                    {% else %}
+                    <li class="muted small">Sem sinal de atenção disponível para o período.</li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         </div>
@@ -161,7 +168,14 @@
                     </div>
                 </li>
                 {% else %}
-                <li class="muted small">Nenhum comentário com ponto de atenção no período.</li>
+                    {% if b.tempo_espera_medio is not none %}
+                    <li class="muted small">
+                        Sem comentário de atenção no período · tempo médio de espera: {{ b.tempo_espera_medio }} min
+                        ({{ "acima" if b.tempo_espera_acima_limiar else "dentro" }} do limiar de referência de {{ b.tempo_espera_limiar_min | int }} min)
+                    </li>
+                    {% else %}
+                    <li class="muted small">Sem sinal de atenção disponível para o período.</li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         </div>

@@ -50,6 +50,18 @@
         </div>
     </div>
 
+    <div class="card">
+        <span class="kpi-label">Mix de produtos · mês mais recente</span>
+        <p class="priority-detail" style="margin-top:6px;">
+            {% if mix_pior_categoria %}
+            Categoria que mais puxa a margem: <strong>{{ mix_pior_categoria.categoria }}</strong>
+            ({{ mix_pior_categoria.margem_pct }}% de margem em {{ mix_pior_categoria.competencia }})
+            {% else %}
+            Sem dado de mix de produtos disponível
+            {% endif %}
+        </p>
+    </div>
+
     <div class="grid grid-2">
         <div class="card chart-card">
             <h2>Desvio de Margem Operacional</h2>
@@ -91,7 +103,14 @@
                     </div>
                 </li>
                 {% else %}
-                <li class="muted small">Nenhum comentário com ponto de atenção no período.</li>
+                    {% if metrics.tempo_espera_medio is not none %}
+                    <li class="muted small">
+                        Sem comentário de atenção no período · tempo médio de espera: {{ metrics.tempo_espera_medio }} min
+                        ({{ "acima" if metrics.tempo_espera_acima_limiar else "dentro" }} do limiar de referência de {{ metrics.tempo_espera_limiar_min | int }} min)
+                    </li>
+                    {% else %}
+                    <li class="muted small">Sem sinal de atenção disponível para o período.</li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         </div>

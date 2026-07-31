@@ -138,6 +138,8 @@ def analise_individual(request: Request, id_loja: str):
         "grafico_desvio_margem": charts.desvio_margem(semanal_margem),
         "grafico_avaliacoes": charts.avaliacoes_volume_nota(semanal_avaliacoes),
         "comentarios": dl.comentarios_destaque(id_loja),
+        # mix de produtos sempre visível aqui (diferente de Prioridades, que só mostra quando motivo é margem)
+        "mix_pior_categoria": dl.pior_categoria_margem(id_loja),
         **_sidebar_ctx(id_loja, active_tab="individual"),
     }
 
